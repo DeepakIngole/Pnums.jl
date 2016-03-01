@@ -1,3 +1,8 @@
+# Pnum stands for either "prototype Unum," or "projective number." I
+# haven't totally decided yet. I don't want to call these Unums yet
+# because I've only implemented a tiny bit of the Unum 2.0 proposal,
+# and I'm implementing some things that aren't in it (AFAICT).
+
 module Pnums
 
 # 000 -> [0, 0]
@@ -13,9 +18,9 @@ const exacts = [-1//1, 0//1, 1//1]
 
 # Store unums in a byte with 5 leading zeros
 # Store ubounds in a byte
-# Store SORNs in a byte
+# Store SOPNs in a byte
 #
-# Interesting that for these numbers, a ubound and a SORN take the same
+# Interesting that for these numbers, a ubound and a SOPN take the same
 # number of bytes to represent
 immutable Pnum
   v::UInt8
@@ -65,14 +70,6 @@ macro pn_str(p)
   pnumstrings[p]
 end
 
-immutable Pbound
-  v::UInt8
-end
-
-immutable Sorn
-  v::UInt8
-end
-
 Base.(:-)(x::Pnum) = Pnum(-x.v)
 # Rotate 90 degrees, negate, and rotate back 90 degrees
 # TODO, 0x02 is a magic number for rotating 90 degrees
@@ -81,6 +78,10 @@ recip(x::Pnum) = Pnum(-(x.v + 0x02) - 0x02)
 # Next and prev move us clockwise around the stereographic circle
 next(x::Pnum) = Pnum(x.v + 0x01)
 prev(x::Pnum) = Pnum(x.v - 0x01)
+
+immutable Pbound
+  v::UInt8
+end
 
 # TODO, 3 is a magic number (the number of bits in our Pnums)
 Pbound(x::Pnum, y::Pnum) = Pbound((x.v << 3) | y.v)
@@ -93,7 +94,7 @@ Base.(:-)(x::Pbound) = Pbound(tag(x).v | Pbound(-second(x), -first(x)).v)
 recip(x::Pbound) = Pbound(tag(x).v | Pbound(recip(second(x)), recip(first(x))).v)
 
 # TODO 0xff is a magic number: "10000000", the complement bit
-complement(x::Pbound) = Pbound(x.v $ 0xff)
+Base.complement(x::Pbound) = Pbound(x.v $ 0xff)
 
 # Arithmetic:
 # Make tables for + and *. They will be 8x8 arrays of Pbounds.
@@ -112,6 +113,10 @@ complement(x::Pbound) = Pbound(x.v $ 0xff)
 #   Everything -> 01000000
 #   Nothing    -> 11000000
 #   first <= second
+
+immutable Sopn
+  v::UInt8
+end
 
 export Pnum, @pn_str, isexact, recip, Pbound, first, second
 
