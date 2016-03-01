@@ -78,8 +78,9 @@ Base.(:-)(x::Pnum) = Pnum(-x.v)
 # TODO, 0x02 is a magic number for rotating 90 degrees
 recip(x::Pnum) = Pnum(-(x.v + 0x02) - 0x02)
 
-next(x::Pnum) = Pnum(x.v + 1)
-prev(x::Pnum) = Pnum(x.v - 1)
+# Next and prev move us clockwise around the stereographic circle
+next(x::Pnum) = Pnum(x.v + 0x01)
+prev(x::Pnum) = Pnum(x.v - 0x01)
 
 # TODO, 3 is a magic number (the number of bits in our Pnums)
 Pbound(x::Pnum, y::Pnum) = Pbound((x.v << 3) | y.v)
