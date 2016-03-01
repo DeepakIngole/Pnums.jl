@@ -1,13 +1,15 @@
 module Pnums
 
-# 000 -> 0
+# 000 -> [0, 0]
 # 001 -> (0, 1)
-# 010 -> 1
+# 010 -> [1, 1]
 # 011 -> (1, /0)
-# 100 -> /0
+# 100 -> [/0, /0]
 # 101 -> (/0, -1)
-# 110 -> -1
+# 110 -> [-1, -1]
 # 111 -> (-1, 0)
+
+const exacts = [-1//1, 0//1, 1//1]
 
 # Store unums in a byte with 5 leading zeros
 # Store ubounds in a byte
@@ -17,8 +19,50 @@ module Pnums
 # number of bytes to represent
 immutable Pnum
   v::UInt8
-  # TODO, 0x07 is a magic number
-  Pnum(v) = new(UInt8(v) & 0x07)
+  Pnum(v) = new(UInt8(v) & 0x07) # TODO magic 00000111 bitmask
+end
+
+Base.isfinite(x::Pnum) = x.v !== 0x04 # TODO magic number for infinity
+isexact(x::Pnum) = (x.v & 0x01) == 0x00
+
+function exactvalue(x::Pnum)
+  if !isfinite(x)
+    1//0
+  else
+    exacts[mod((x.v >> 1) + 2, 4)]
+  end
+end
+
+_str(x::Pnum) = isfinite(x) ? string(num(exactvalue(x))) : "/0"
+
+function Base.show(io::IO, x::Pnum)
+  if (isexact(x))
+    print(io, "pn\"", "[", _str(x), ", ", _str(x), "]\"")
+  else
+    print(io, "pn\"", "(", _str(prev(x)), ", ", _str(next(x)), ")\"")
+  end
+end
+
+const pnumstrings = Dict(
+  "0" => Pnum(0x00),
+  "[0, 0]" => Pnum(0x00),
+  "(0, 1)" => Pnum(0x01),
+  "1" => Pnum(0x02),
+  "[1, 1]" => Pnum(0x02),
+  "(1, /0)" => Pnum(0x03),
+  "/0" => Pnum(0x04),
+  "[/0, /0]" => Pnum(0x04),
+  "(/0, -1)" => Pnum(0x05),
+  "-1" => Pnum(0x06),
+  "[-1, -1]" => Pnum(0x06),
+  "(-1, 0)" => Pnum(0x07)
+)
+
+macro pn_str(p)
+  # TODO proper error message for improperly formatted Pnum
+  # TODO less hardcoding of pnum input
+  # TODO less strict whitespace in pnum input
+  pnumstrings[p]
 end
 
 immutable Pbound
@@ -68,6 +112,6 @@ complement(x::Pbound) = Pbound(x.v $ 0xff)
 #   Nothing    -> 11000000
 #   first <= second
 
-export Pnum, neg, recip, next, prev
+export Pnum, @pn_str, isexact, recip, Pbound, first, second
 
 end
