@@ -50,3 +50,35 @@ using Base.Test
 @test Pnums.prev(pn"(/0, -1)") == pn"/0"
 @test Pnums.prev(pn"-1") == pn"(/0, -1)"
 @test Pnums.prev(pn"(-1, 0)") == pn"-1"
+
+for v1 in 0x00:0x08, v2 in 0x00:0x08
+  x1, x2 = Pnum(v1), Pnum(v2)
+  x = Pbound(x1, x2)
+  @test -(-x) == x
+  if pn"0" in x
+    @test pn"0" in -x
+  end
+  if pn"/0" in x
+    @test pn"/0" in -x
+  end
+  if pn"1" in x
+    @test pn"-1" in -x
+  end
+  if pn"-1" in x
+    @test pn"1" in -x
+  end
+
+  @test recip(recip(x)) == x
+  if pn"0" in x
+    @test pn"/0" in recip(x)
+  end
+  if pn"/0" in x
+    @test pn"0" in recip(x)
+  end
+  if pn"1" in x
+    @test pn"1" in recip(x)
+  end
+  if pn"-1" in x
+    @test pn"-1" in recip(x)
+  end
+end
