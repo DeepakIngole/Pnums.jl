@@ -82,3 +82,11 @@ for v1 in 0x00:0x08, v2 in 0x00:0x08
     @test pn"-1" in recip(x)
   end
 end
+
+for v1 in 0x00:0x08, v2 in 0x00:0x08, v3 in 0x00:0x08
+  x1, x2, x3 = Pnum(v1), Pnum(v2), Pnum(v3)
+  x = Pbound(x1, x2)
+  if x3 in x
+    @test !(x3 in complement(x))
+  end
+end
