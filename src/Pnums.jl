@@ -1,15 +1,3 @@
-# Pnum stands for either "prototype Unum," or "projective number." I
-# haven't totally decided yet. I don't want to call these Unums yet
-# because I've only implemented a tiny bit of the Unum 2.0 proposal,
-# and I'm implementing some things that aren't in it (AFAICT).
-#
-# Pnums are exactly as described by Gustafson for Unums 2.0.
-#
-# Pbounds represent intervals of the projective circle. They are
-# encoded as 2 Pnums endpoints, which represent entire anti-clockwise
-# interval between the first endpoint and the second endpoint,
-# inclusive. They also store a separate tag to represent whether or not
-# the set is empty.
 module Pnums
 
 # 000 -> [0, 0]
