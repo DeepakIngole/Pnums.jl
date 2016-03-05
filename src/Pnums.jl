@@ -170,6 +170,11 @@ function iseverything(x::Pbound)
   empty && return false
   mod(x1.v - x2.v, pnnvalues) == one(x.v)
 end
+function isexact(x::Pbound)
+  empty, x1, x2 = unpack(x)
+  empty && return false
+  x1.v == x2.v && isexact(x1)
+end
 
 # There are actually n^2 representations for "empty", and n
 # representations for "everything", but these are the canonical ones.

@@ -61,7 +61,7 @@ _str(x::Pnum) = isinf(x) ? "/0" : string(num(exactvalue(x)))
 
 function Base.show(io::IO, x::Pnum)
   if (isexact(x))
-    print(io, "pn\"", "[", _str(x), ", ", _str(x), "]\"")
+    print(io, "pn\"", _str(x), "\"")
   else
     print(io, "pn\"", "(", _str(prev(x)), ", ", _str(next(x)), ")\"")
   end
@@ -103,13 +103,15 @@ function parseinterval(::Type{Pbound}, match)
 end
 
 function Base.show(io::IO, x::Pbound)
-  if isempty(x)
+  empty, x1, x2 = unpack(x)
+
+  if empty
     print(io, "pb\"empty\"")
   elseif iseverything(x)
     print(io, "pb\"everything\"")
+  elseif isexact(x)
+    print(io, "pb\"", _str(x1), "\"")
   else
-    x1, x2 = unpack(x)
-
     print(io, "pb\"")
 
     if isexact(x1)
