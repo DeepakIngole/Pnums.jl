@@ -90,9 +90,70 @@ Base.(:-)(x::Pnum) = Pnum(-x.v)
 # Negate and rotate 180 degrees
 recip(x::Pnum) = Pnum(-x.v - 0x04)
 
-# Next and prev move us clockwise around the stereographic circle
-next(x::Pnum) = Pnum(x.v + one(x.v))
-prev(x::Pnum) = Pnum(x.v - one(x.v))
+# Calling these slowplus and slowtimes because, in a final
+# implementation, they will probably be used to generate lookup tables,
+# and the lookup tables will be used for runtime arithmetic
+
+function _exactplus(x::Pnum, y::Pnum)
+  isinf(x) || isinf(y) ? pninf : convert(Pnum, exactvalue(x) + exactvalue(y))
+end
+
+# Note, returns a Pbound
+function slowplus(x::Pnum, y::Pnum)
+  (isinf(x) && isinf(y)) && return everything
+
+  xexact, yexact = isexact(x), isexact(y)
+  bothexact = xexact && yexact
+
+  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
+  y1, y2 = yexact ? (y, y) : (prev(y), next(y))
+
+  z1 = _exactplus(x1, y1)
+  z2 = _exactplus(x2, y2)
+
+  z1 = !bothexact && isexact(z1) ? next(z1) : z1
+  z2 = !bothexact && isexact(z2) ? prev(z2) : z2
+
+  Pbound(z1, z2)
+end
+
+function _exacttimes(x::Pnum, y::Pnum)
+  isinf(x) || isinf(y) ? pninf : convert(Pnum, exactvalue(x)*exactvalue(y))
+end
+
+# Note, returns a Pbound
+function slowtimes(x::Pnum, y::Pnum)
+  (isinf(x) && iszero(y)) && return everything
+  (iszero(x) && isinf(y)) && return everything
+
+  xexact, yexact = isexact(x), isexact(y)
+  bothexact = xexact && yexact
+
+  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
+  y1, y2 = yexact ? (y, y) : (prev(y), next(y))
+
+  if (isstrictlynegative(y))
+    x1, x2 = x2, x1
+  end
+
+  if (isstrictlynegative(x))
+    y1, y2 = y2, y1
+  end
+
+  z1 = _exacttimes(x1, y1)
+  z2 = _exacttimes(x2, y2)
+
+  z1 = !bothexact && isexact(z1) ? next(z1) : z1
+  z2 = !bothexact && isexact(z2) ? prev(z2) : z2
+
+  Pbound(z1, z2)
+end
+
+# TODO plan to replace these with lut operations at some point (maybe)
+Base.(:+)(x::Pnum, y::Pnum) = slowplus(x, y)
+Base.(:-)(x::Pnum, y::Pnum) = slowplus(x, -y)
+Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
+Base.(:/)(x::Pnum, y::Pnum) = slowtimes(x, recip(y))
 
 immutable Pbound
   v::UInt8
