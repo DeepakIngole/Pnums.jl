@@ -68,8 +68,8 @@ function Base.show(io::IO, x::Pnum)
 end
 
 function Base.parse(::Type{Pbound}, str)
-  str == "empty" && return empty
-  str == "everything" && return everything
+  str == "empty" && return pbempty
+  str == "everything" && return pbeverything
   m = match(r"^(-?)(/?)(\d)$", str)
   m != nothing && return parseexact(Pbound, m)
   m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)

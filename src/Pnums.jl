@@ -5,26 +5,11 @@
 #
 # Pnums are exactly as described by Gustafson for Unums 2.0.
 #
-# Pbounds represent intervals of the stereographic circle (i.e. the
-# projective real line). They are encoded as 2 Pnums, and you traverse
-# them counter-clockwise from the first value to the second value.
-#
-# This means that there are n redundant representations of the entire
-# set.
-#
-# The top two bits of a Pbound are a tag, which is set to 00 for normal
-# Pbounds, and 10 for the empty set. The second bit of the tag is
-# currently unused. When the empty set tag is present, the rest of the
-# Pbound has no interpretation.
-#
-# One idea I had for the second tag bit is to allow a distinction
-# between a completely empty set, the result of an operation over an
-# interval that maps partially to the empty set. E.g. to encode the
-# difference between sqrt(pb"(-1, 1)") and sqrt(pb"(0, 1)"). In the
-# first case, part of the input maps to the real line, and part of it
-# does not. In the second case, none of the input maps to the real
-# line.
-
+# Pbounds represent intervals of the projective circle. They are
+# encoded as 2 Pnums endpoints, which represent entire anti-clockwise
+# interval between the first endpoint and the second endpoint,
+# inclusive. They also store a separate tag to represent whether or not
+# the set is empty.
 module Pnums
 
 # 000 -> [0, 0]
@@ -36,39 +21,40 @@ module Pnums
 # 110 -> [-1, -1]
 # 111 -> (-1, 0)
 
-# Store unums in a byte with 5 leading zeros
-# Store ubounds in a byte
-# Store SOPNs in a byte
-#
-# Interesting that for these numbers, a ubound and a SOPN take the same
-# number of bytes to represent
+const exacts = [-1//1, 0//1, 1//1]
+const pnnvalues = UInt8(2*(length(exacts) + 1))
+const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
+
+# Pack a Pnum into the 3 trailing bits of a UInt8
+# TODO am I going to get hurt by endianness here?
 immutable Pnum
   v::UInt8
-  # TODO, just throw an error if other bits are set. Normalizing here
-  # seems dangerous. Probably also switch to bitmask indirection.
-  Pnum(v) = new(UInt8(v) & 0x07) # TODO magic 00000111 bitmask
+  # TODO, don't make this constructor part of the public interface. It's
+  # kind of dangerous because it just masks off a bunch of bits. I think
+  # I want to move to having the Pnum constructor call "convert", and
+  # requiring use of a "Bitmask" to do raw construction.
+  Pnum(v) = new(UInt8(v) & pnmask)
 end
 
 const pnzero = Pnum(0x00)
-const pninf = Pnum(0x04)
+const pninf = Pnum(pnnvalues >> 1)
 
-zero(::Type{Pnum}) = pnzero
+Base.zero(::Type{Pnum}) = pnzero
 iszero(x::Pnum) = x.v == pnzero.v
 Base.isinf(x::Pnum) = x.v == pninf.v
-isexact(x::Pnum) = (x.v & 0x01) == 0x00 # Check the ubit
-# Next and prev move us clockwise around the stereographic circle
+isexact(x::Pnum) = trailing_ones(x.v) == 0 # Check the ubit
+# Next and prev move us anti-clockwise or clockwise around the
+# projective circle
 next(x::Pnum) = Pnum(x.v + one(x.v))
 prev(x::Pnum) = Pnum(x.v - one(x.v))
 
 isstrictlynegative(x::Pnum) = x.v > pninf.v
 
-const exacts = [-1//1, 0//1, 1//1]
-
 function exactvalue(x::Pnum)
   if isinf(x)
     1//0
   else
-    exacts[mod((x.v >> 1) + 2, 4)]
+    exacts[mod((x.v >> 1) + 0x02, pnnvalues >> 1)]
   end
 end
 
@@ -76,19 +62,19 @@ function Base.convert(::Type{Pnum}, x::Real)
   isinf(x) && return pninf
   r = searchsorted(exacts, x)
   if first(r) == last(r)
-    return Pnum(UInt8(mod(2*first(r) - 4, 8)))
+    return Pnum(mod(UInt8(first(r) << 1) - (pnnvalues >> 1), pnnvalues))
   elseif first(r) > length(exacts)
     return prev(pninf)
   elseif last(r) == 0
     return next(pninf)
   else
-    return next(Pnum(UInt8(mod(2*last(r) - 4, 8))))
+    return next(Pnum(mod(UInt8(last(r) << 1) - (pnnvalues >> 1), pnnvalues)))
   end
 end
 
 Base.(:-)(x::Pnum) = Pnum(-x.v)
 # Negate and rotate 180 degrees
-recip(x::Pnum) = Pnum(-x.v - 0x04)
+recip(x::Pnum) = Pnum(-x.v - pninf.v)
 
 # Calling these slowplus and slowtimes because, in a final
 # implementation, they will probably be used to generate lookup tables,
@@ -100,7 +86,7 @@ end
 
 # Note, returns a Pbound
 function slowplus(x::Pnum, y::Pnum)
-  (isinf(x) && isinf(y)) && return everything
+  (isinf(x) && isinf(y)) && return pbeverything
 
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
@@ -123,8 +109,8 @@ end
 
 # Note, returns a Pbound
 function slowtimes(x::Pnum, y::Pnum)
-  (isinf(x) && iszero(y)) && return everything
-  (iszero(x) && isinf(y)) && return everything
+  (isinf(x) && iszero(y)) && return pbeverything
+  (iszero(x) && isinf(y)) && return pbeverything
 
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
@@ -155,27 +141,36 @@ Base.(:-)(x::Pnum, y::Pnum) = slowplus(x, -y)
 Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
 Base.(:/)(x::Pnum, y::Pnum) = slowtimes(x, recip(y))
 
+# A Pbound is stored as a packed binary UInt, consisting of a leading
+# two bit tag followed by 2 Pnums.
+#
+# Tag meanings:
+# "10": empty set, regardless of the following bits.
+# "00": anti-clockwise interval from first Pnum to second
+# "11": resserved, currently illegal
+# "01": reserved, currently illegal
 immutable Pbound
   v::UInt8
 end
 
-# TODO, 3 is a magic number (the number of bits in our Pnums)
-Pbound(x::Pnum, y::Pnum) = Pbound((x.v << 3) | y.v)
-unpack(x::Pbound) = (Pnum(x.v >> 3), Pnum(x.v))
-# TODO, 0xc0 is a magic number: "11000000", the first two bits of a byte
-tag(x::Pbound) = Pbound(x.v & 0xc0)
+const pbshiftsize = 4*sizeof(Pbound) - 1
 
-# TODO, 0x80 is "10000000", checks top bit
-isempty(x::Pbound) = (x.v & 0x80) == 0x80
+Pbound(x::Pnum, y::Pnum) = Pbound((x.v << pbshiftsize) | y.v)
+unpack(x::Pbound) = (Pnum(x.v >> pbshiftsize), Pnum(x.v))
+
+isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
 function iseverything(x::Pbound)
   x1, x2 = unpack(x)
-  mod(x1.v - x2.v, 0x08) == one(x.v)
+  mod(x1.v - x2.v, pnnvalues) == one(x.v)
 end
 
-const empty = Pbound(0x80)
-const everything = Pbound(zero(Pnum), prev(zero(Pnum)))
+# There are actually n^2 representations for "empty", and n
+# representations for "everything", but these are the canonical ones.
+const pbempty = Pbound(1 << (8*sizeof(Pbound) - 1)) # "10000000"
+const pbeverything = Pbound(pnzero, prev(pnzero))
+const pbzero = Pbound(pnzero, pnzero)
 
-zero(::Type{Pbound}) = Pbound(zero(Pnum), zero(Pnum))
+Base.zero(::Type{Pbound}) = pbzero
 
 function Base.convert(::Type{Pbound}, x::Real)
   x1 = convert(Pnum, x)
@@ -183,20 +178,20 @@ function Base.convert(::Type{Pbound}, x::Real)
 end
 
 function Base.(:-)(x::Pbound)
-  isempty(x) && return empty
+  isempty(x) && return pbempty
   x1, x2 = unpack(x)
   Pbound(-x2, -x1)
 end
 
 function recip(x::Pbound)
-  isempty(x) && return empty
+  isempty(x) && return pbempty
   x1, x2 = unpack(x)
   Pbound(recip(x2), recip(x1))
 end
 
 function Base.complement(x::Pbound)
-  isempty(x) && return everything
-  iseverything(x) && return empty
+  isempty(x) && return pbeverything
+  iseverything(x) && return pbempty
   x1, x2 = unpack(x)
   Pbound(next(x2), prev(x1))
 end
