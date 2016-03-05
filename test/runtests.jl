@@ -110,10 +110,10 @@ for v1 in 0x00:0x07, v2 in 0x00:0x07, v3 in 0x00:0x07
   end
 end
 
-@test pn"[0, 0]" + pn"[0, 0]" == pb"[0, 0]"
-@test pn"[0, 0]" + pn"[/0, /0]" == pb"[/0, /0]"
-@test pn"[/0, /0]" + pn"[0, 0]" == pb"[/0, /0]"
-@test pn"[/0, /0]" + pn"[/0, /0]" == pb"everything"
+@test pn"0" + pn"0" == pb"0"
+@test pn"0" + pn"/0" == pb"/0"
+@test pn"/0" + pn"0" == pb"/0"
+@test pn"/0" + pn"/0" == pb"everything"
 
 @test pn"(0, 1)" + pn"(0, 1)" == pb"(0, /0)"
 @test pn"(0, 1)" + pn"(1, /0)" == pb"(1, /0)"
@@ -126,10 +126,10 @@ end
 @test pn"(/0, -1)" + pn"(-1, 0)" == pb"(/0, -1)"
 @test pn"(-1, 0)" + pn"(-1, 0)" == pb"(/0, 0)"
 
-@test pn"[0, 0]" * pn"[0, 0]" == pb"[0, 0]"
-@test pn"[0, 0]" * pn"[/0, /0]" == pb"everything"
-@test pn"[/0, /0]" * pn"[0, 0]" == pb"everything"
-@test pn"[/0, /0]" * pn"[/0, /0]" == pb"[/0, /0]"
+@test pn"0" * pn"0" == pb"0"
+@test pn"0" * pn"/0" == pb"everything"
+@test pn"/0" * pn"0" == pb"everything"
+@test pn"/0" * pn"/0" == pb"/0"
 
 @test pn"(0, 1)" * pn"(0, 1)" == pb"(0, 1)"
 @test pn"(0, 1)" * pn"(1, /0)" == pb"(0, /0)"
@@ -142,10 +142,10 @@ end
 @test pn"(/0, -1)" * pn"(-1, 0)" == pb"(0, /0)"
 @test pn"(-1, 0)" * pn"(-1, 0)" == pb"(0, 1)"
 
-@test pn"[0, 0]" - pn"[0, 0]" == pb"[0, 0]"
-@test pn"[0, 0]" - pn"[/0, /0]" == pb"[/0, /0]"
-@test pn"[/0, /0]" - pn"[0, 0]" == pb"[/0, /0]"
-@test pn"[/0, /0]" - pn"[/0, /0]" == pb"everything"
+@test pn"0" - pn"0" == pb"0"
+@test pn"0" - pn"/0" == pb"/0"
+@test pn"/0" - pn"0" == pb"/0"
+@test pn"/0" - pn"/0" == pb"everything"
 
 @test pn"(0, 1)" - pn"(0, 1)" == pb"(-1, 1)"
 @test pn"(0, 1)" - pn"(1, /0)" == pb"(/0, 0)"
@@ -158,10 +158,10 @@ end
 @test pn"(/0, -1)" - pn"(-1, 0)" == pb"(/0, 0)"
 @test pn"(-1, 0)" - pn"(-1, 0)" == pb"(-1, 1)"
 
-@test pn"[0, 0]" / pn"[0, 0]" == pb"everything"
-@test pn"[0, 0]" / pn"[/0, /0]" == pb"[0, 0]"
-@test pn"[/0, /0]" / pn"[0, 0]" == pb"[/0, /0]"
-@test pn"[/0, /0]" / pn"[/0, /0]" == pb"everything"
+@test pn"0" / pn"0" == pb"everything"
+@test pn"0" / pn"/0" == pb"0"
+@test pn"/0" / pn"0" == pb"/0"
+@test pn"/0" / pn"/0" == pb"everything"
 
 @test pn"(0, 1)" / pn"(0, 1)" == pb"(0, /0)"
 @test pn"(0, 1)" / pn"(1, /0)" == pb"(0, 1)"
