@@ -11,7 +11,7 @@ macro pn_str(str)
 end
 
 function _frompieces(negative, reciprocal, value)
-  reciprocal && value == 0 && return infty
+  reciprocal && value == 0 && return pninf
 
   value = negative ? -value : value
   value = reciprocal ? 1//value : value
@@ -57,7 +57,7 @@ function parseinterval(::Type{Pnum}, match)
   return x1
 end
 
-_str(x::Pnum) = isfinite(x) ? string(num(exactvalue(x))) : "/0"
+_str(x::Pnum) = isinf(x) ? "/0" : string(num(exactvalue(x)))
 
 function Base.show(io::IO, x::Pnum)
   if (isexact(x))

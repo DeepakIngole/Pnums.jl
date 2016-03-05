@@ -51,7 +51,7 @@ using Base.Test
 @test Pnums.prev(pn"-1") == pn"(/0, -1)"
 @test Pnums.prev(pn"(-1, 0)") == pn"-1"
 
-for v1 in 0x00:0x08, v2 in 0x00:0x08
+for v1 in 0x00:0x07, v2 in 0x00:0x07
   x1, x2 = Pnum(v1), Pnum(v2)
   x = Pbound(x1, x2)
   @test -(-x) == x

@@ -44,17 +44,28 @@ module Pnums
 # number of bytes to represent
 immutable Pnum
   v::UInt8
+  # TODO, just throw an error if other bits are set. Normalizing here
+  # seems dangerous. Probably also switch to bitmask indirection.
   Pnum(v) = new(UInt8(v) & 0x07) # TODO magic 00000111 bitmask
 end
 
-Base.isfinite(x::Pnum) = x.v != 0x04 # TODO magic number for infinity
-isexact(x::Pnum) = (x.v & 0x01) == 0x00
-const infty = Pnum(0x04)
+const pnzero = Pnum(0x00)
+const pninf = Pnum(0x04)
+
+zero(::Type{Pnum}) = pnzero
+iszero(x::Pnum) = x.v == pnzero.v
+Base.isinf(x::Pnum) = x.v == pninf.v
+isexact(x::Pnum) = (x.v & 0x01) == 0x00 # Check the ubit
+# Next and prev move us clockwise around the stereographic circle
+next(x::Pnum) = Pnum(x.v + one(x.v))
+prev(x::Pnum) = Pnum(x.v - one(x.v))
+
+isstrictlynegative(x::Pnum) = x.v > pninf.v
 
 const exacts = [-1//1, 0//1, 1//1]
 
 function exactvalue(x::Pnum)
-  if !isfinite(x)
+  if isinf(x)
     1//0
   else
     exacts[mod((x.v >> 1) + 2, 4)]
@@ -62,14 +73,14 @@ function exactvalue(x::Pnum)
 end
 
 function Base.convert(::Type{Pnum}, x::Real)
-  isinf(x) && return infty
+  isinf(x) && return pninf
   r = searchsorted(exacts, x)
   if first(r) == last(r)
     return Pnum(UInt8(mod(2*first(r) - 4, 8)))
   elseif first(r) > length(exacts)
-    return prev(infty)
+    return prev(pninf)
   elseif last(r) == 0
-    return next(infty)
+    return next(pninf)
   else
     return next(Pnum(UInt8(mod(2*last(r) - 4, 8))))
   end
@@ -93,7 +104,7 @@ unpack(x::Pbound) = (Pnum(x.v >> 3), Pnum(x.v))
 # TODO, 0xc0 is a magic number: "11000000", the first two bits of a byte
 tag(x::Pbound) = Pbound(x.v & 0xc0)
 
-# TODO, 0x80 is "11000000", checks top bit
+# TODO, 0x80 is "10000000", checks top bit
 isempty(x::Pbound) = (x.v & 0x80) == 0x80
 function iseverything(x::Pbound)
   x1, x2 = unpack(x)
@@ -101,7 +112,9 @@ function iseverything(x::Pbound)
 end
 
 const empty = Pbound(0x80)
-const everything = Pbound(Pnum(0x00), Pnum(0xff))
+const everything = Pbound(zero(Pnum), prev(zero(Pnum)))
+
+zero(::Type{Pbound}) = Pbound(zero(Pnum), zero(Pnum))
 
 function Base.convert(::Type{Pbound}, x::Real)
   x1 = convert(Pnum, x)
@@ -142,9 +155,6 @@ end
 #   * everything*(something except 0 or /0)
 #   * everything + something
 # Multiplying 0 or /0 by something (i.e. not nothing) produces 0 or /0
-
-# Need to implement a way of coercing point values into Pnums. Binary search
-# on exact values is probably the way to go.
 
 immutable Sopn
   v::UInt8
