@@ -156,11 +156,16 @@ end
 const pbshiftsize = 4*sizeof(Pbound) - 1
 
 Pbound(x::Pnum, y::Pnum) = Pbound((x.v << pbshiftsize) | y.v)
-unpack(x::Pbound) = (Pnum(x.v >> pbshiftsize), Pnum(x.v))
+unpack(x::Pbound) = (
+  isempty(x),
+  Pnum(x.v >> pbshiftsize),
+  Pnum(x.v)
+)
 
 isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
 function iseverything(x::Pbound)
-  x1, x2 = unpack(x)
+  empty, x1, x2 = unpack(x)
+  empty && return false
   mod(x1.v - x2.v, pnnvalues) == one(x.v)
 end
 
@@ -178,27 +183,27 @@ function Base.convert(::Type{Pbound}, x::Real)
 end
 
 function Base.(:-)(x::Pbound)
-  isempty(x) && return pbempty
-  x1, x2 = unpack(x)
+  empty, x1, x2 = unpack(x)
+  empty && return x
   Pbound(-x2, -x1)
 end
 
 function recip(x::Pbound)
-  isempty(x) && return pbempty
-  x1, x2 = unpack(x)
+  empty, x1, x2 = unpack(x)
+  empty && return x
   Pbound(recip(x2), recip(x1))
 end
 
 function Base.complement(x::Pbound)
-  isempty(x) && return pbeverything
+  empty, x1, x2 = unpack(x)
+  empty && return pbeverything
   iseverything(x) && return pbempty
-  x1, x2 = unpack(x)
   Pbound(next(x2), prev(x1))
 end
 
 function Base.in(y::Pnum, x::Pbound)
-  isempty(x) && return false
-  x1, x2 = unpack(x)
+  empty, x1, x2 = unpack(x)
+  empty && return false
   y.v - x1.v <= x2.v - x1.v
 end
 
