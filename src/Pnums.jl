@@ -217,10 +217,6 @@ end
 #   * everything + something
 # Multiplying 0 or /0 by something (i.e. not nothing) produces 0 or /0
 
-immutable Sopn
-  v::UInt8
-end
-
 include("./io.jl")
 
 export Pnum, Pbound, @pn_str, @pb_str, isexact, recip
