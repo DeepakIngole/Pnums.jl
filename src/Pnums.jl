@@ -13,6 +13,13 @@ const exacts = [-1//1, 0//1, 1//1]
 const pnnvalues = UInt8(2*(length(exacts) + 1))
 const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
 
+# Used for indirection purposes to allow Pnum(x::Real) to do conversion
+# while still having a way to create a Pnum from raw bits. Should I
+# just use reinterpret for this purpose?
+immutable Bitmask{T}
+  v::T
+end
+
 # Pack a Pnum into the 3 trailing bits of a UInt8
 # TODO am I going to get hurt by endianness here?
 immutable Pnum
@@ -21,11 +28,14 @@ immutable Pnum
   # kind of dangerous because it just masks off a bunch of bits. I think
   # I want to move to having the Pnum constructor call "convert", and
   # requiring use of a "Bitmask" to do raw construction.
-  Pnum(v) = new(UInt8(v) & pnmask)
+  Pnum(b::Bitmask{UInt8}) = new(b.v & pnmask)
 end
 
-const pnzero = Pnum(0x00)
-const pninf = Pnum(pnnvalues >> 1)
+rawpnum(v::UInt8) = Pnum(Bitmask(v))
+Pnum(x::Real) = convert(Pnum, x)
+
+const pnzero = rawpnum(0x00)
+const pninf = rawpnum(pnnvalues >> 1)
 
 Base.zero(::Type{Pnum}) = pnzero
 iszero(x::Pnum) = x.v == pnzero.v
@@ -33,8 +43,8 @@ Base.isinf(x::Pnum) = x.v == pninf.v
 isexact(x::Pnum) = trailing_ones(x.v) == 0 # Check the ubit
 # Next and prev move us anti-clockwise or clockwise around the
 # projective circle
-next(x::Pnum) = Pnum(x.v + one(x.v))
-prev(x::Pnum) = Pnum(x.v - one(x.v))
+next(x::Pnum) = rawpnum(x.v + one(x.v))
+prev(x::Pnum) = rawpnum(x.v - one(x.v))
 
 isstrictlynegative(x::Pnum) = x.v > pninf.v
 
@@ -50,19 +60,19 @@ function Base.convert(::Type{Pnum}, x::Real)
   isinf(x) && return pninf
   r = searchsorted(exacts, x)
   if first(r) == last(r)
-    return Pnum(mod(UInt8(first(r) << 1) - (pnnvalues >> 1), pnnvalues))
+    return rawpnum(mod(UInt8(first(r) << 1) - (pnnvalues >> 1), pnnvalues))
   elseif first(r) > length(exacts)
     return prev(pninf)
   elseif last(r) == 0
     return next(pninf)
   else
-    return next(Pnum(mod(UInt8(last(r) << 1) - (pnnvalues >> 1), pnnvalues)))
+    return next(rawpnum(mod(UInt8(last(r) << 1) - (pnnvalues >> 1), pnnvalues)))
   end
 end
 
-Base.(:-)(x::Pnum) = Pnum(-x.v)
+Base.(:-)(x::Pnum) = rawpnum(-x.v)
 # Negate and rotate 180 degrees
-recip(x::Pnum) = Pnum(-x.v - pninf.v)
+recip(x::Pnum) = rawpnum(-x.v - pninf.v)
 
 # Calling these slowplus and slowtimes because, in a final
 # implementation, they will probably be used to generate lookup tables,
@@ -139,15 +149,19 @@ Base.(:/)(x::Pnum, y::Pnum) = slowtimes(x, recip(y))
 # "01": reserved, currently illegal
 immutable Pbound
   v::UInt8
+  Pbound(b::Bitmask{UInt8}) = new(b.v)
 end
+
+rawpbound(v::UInt8) = Pbound(Bitmask(v))
+Pbound(x::Real) = convert(Pbound, x)
 
 const pbshiftsize = 4*sizeof(Pbound) - 1
 
-Pbound(x::Pnum, y::Pnum) = Pbound((x.v << pbshiftsize) | y.v)
+Pbound(x::Pnum, y::Pnum) = rawpbound((x.v << pbshiftsize) | y.v)
 unpack(x::Pbound) = (
   isempty(x),
-  Pnum(x.v >> pbshiftsize),
-  Pnum(x.v)
+  rawpnum(x.v >> pbshiftsize),
+  rawpnum(x.v)
 )
 
 isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
@@ -159,7 +173,7 @@ end
 
 # There are actually n^2 representations for "empty", and n
 # representations for "everything", but these are the canonical ones.
-const pbempty = Pbound(1 << (8*sizeof(Pbound) - 1)) # "10000000"
+const pbempty = rawpbound(UInt8(1 << (8*sizeof(Pbound) - 1))) # "10000000"
 const pbeverything = Pbound(pnzero, prev(pnzero))
 const pbzero = Pbound(pnzero, pnzero)
 

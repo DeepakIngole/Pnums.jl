@@ -1,6 +1,25 @@
 using Pnums
 using Base.Test
 
+# Conversion from reals
+@test Pnum(0) == pn"0"
+@test Pnum(1) == pn"1"
+@test Pnum(Inf) == pn"/0"
+@test Pnum(-1) == pn"-1"
+@test Pnum(0.5) == pn"(0, 1)"
+@test Pnum(10) == pn"(1, /0)"
+@test Pnum(-10) == pn"(/0, -1)"
+@test Pnum(-0.5) ==  pn"(-1, 0)"
+
+@test Pbound(0) == pb"0"
+@test Pbound(1) == pb"1"
+@test Pbound(Inf) == pb"/0"
+@test Pbound(-1) == pb"-1"
+@test Pbound(0.5) == pb"(0, 1)"
+@test Pbound(10) == pb"(1, /0)"
+@test Pbound(-10) == pb"(/0, -1)"
+@test Pbound(-0.5) ==  pb"(-1, 0)"
+
 # Negating Pnums
 @test -pn"0" == pn"0"
 @test -pn"(0, 1)" == pn"(-1, 0)"
@@ -52,7 +71,7 @@ using Base.Test
 @test Pnums.prev(pn"(-1, 0)") == pn"-1"
 
 for v1 in 0x00:0x07, v2 in 0x00:0x07
-  x1, x2 = Pnum(v1), Pnum(v2)
+  x1, x2 = Pnums.rawpnum(v1), Pnums.rawpnum(v2)
   x = Pbound(x1, x2)
   @test -(-x) == x
   if pn"0" in x
@@ -84,7 +103,7 @@ for v1 in 0x00:0x07, v2 in 0x00:0x07
 end
 
 for v1 in 0x00:0x07, v2 in 0x00:0x07, v3 in 0x00:0x07
-  x1, x2, x3 = Pnum(v1), Pnum(v2), Pnum(v3)
+  x1, x2, x3 = Pnums.rawpnum(v1), Pnums.rawpnum(v2), Pnums.rawpnum(v3)
   x = Pbound(x1, x2)
   if x3 in x
     @test !(x3 in complement(x))
