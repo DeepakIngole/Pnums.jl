@@ -49,8 +49,83 @@ immutable Pnum
   Pnum(v) = new(UInt8(v) & 0x07) # TODO magic 00000111 bitmask
 end
 
+const infty = Pnum(0x04)
+
+function _frompieces(negative, reciprocal, value)
+  reciprocal && value == 0 && return infty
+
+  value = negative ? -value : value
+  value = reciprocal ? 1//value : value
+  i = searchsorted(exacts, value)
+  first(i) != last(i) && throw(InexactError())
+  return Pnum(UInt8(mod(2*first(i) - 4, 8)))
+end
+
+function parsefirst(closed, negative, reciprocal, value)
+  x = _frompieces(negative, reciprocal, value)
+  return closed ? x : next(x)
+end
+
+function parsesecond(closed, negative, reciprocal, value)
+  x = _frompieces(negative, reciprocal, value)
+  return closed ? x : prev(x)
+end
+
+function parseexact(::Type{Pnum}, match)
+ return _frompieces(
+    match.captures[1] == "-",
+    match.captures[2] == "/",
+    parse(Int, match.captures[3])
+  )
+end
+
+function parseinterval(::Type{Pnum}, match)
+  x1 = parsefirst(
+    match.captures[1] == "[",
+    match.captures[2] == "-",
+    match.captures[3] == "/",
+    parse(Int, match.captures[4])
+  )
+  x2 = parsesecond(
+    match.captures[8] == "]",
+    match.captures[5] == "-",
+    match.captures[6] == "/",
+    parse(Int, match.captures[7])
+  )
+  if x1.v != x2.v
+    throw(ArgumentError("Improperly formatted Pnum"))
+  end
+  return x1
+end
+
+function Base.parse(::Type{Pnum}, str)
+  m = match(r"^(-?)(/?)(\d)$", str)
+  m != nothing && return parseexact(Pnum, m)
+  m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
+  m != nothing && return parseinterval(Pnum, m)
+  throw(ArgumentError("Improperly formatted Pnum"))
+end
+
+macro pn_str(str)
+  parse(Pnum, str)
+end
+
 Base.isfinite(x::Pnum) = x.v != 0x04 # TODO magic number for infinity
 isexact(x::Pnum) = (x.v & 0x01) == 0x00
+
+function Base.convert(::Type{Pnum}, x::Real)
+  isinf(x) && return infty
+  r = searchsorted(exacts, x)
+  if first(r) == last(r)
+    return Pnum(UInt8(mod(2*first(r) - 4, 8)))
+  elseif first(r) > length(exacts)
+    return prev(infty)
+  elseif last(r) == 0
+    return next(infty)
+  else
+    return next(Pnum(UInt8(mod(2*last(r) - 4, 8))))
+  end
+end
 
 function exactvalue(x::Pnum)
   if !isfinite(x)
@@ -68,28 +143,6 @@ function Base.show(io::IO, x::Pnum)
   else
     print(io, "pn\"", "(", _str(prev(x)), ", ", _str(next(x)), ")\"")
   end
-end
-
-const pnumstrings = Dict(
-  "0" => Pnum(0x00),
-  "[0, 0]" => Pnum(0x00),
-  "(0, 1)" => Pnum(0x01),
-  "1" => Pnum(0x02),
-  "[1, 1]" => Pnum(0x02),
-  "(1, /0)" => Pnum(0x03),
-  "/0" => Pnum(0x04),
-  "[/0, /0]" => Pnum(0x04),
-  "(/0, -1)" => Pnum(0x05),
-  "-1" => Pnum(0x06),
-  "[-1, -1]" => Pnum(0x06),
-  "(-1, 0)" => Pnum(0x07)
-)
-
-macro pn_str(p)
-  # TODO proper error message for improperly formatted Pnum
-  # TODO less hardcoding of pnum input
-  # TODO less strict whitespace in pnum input
-  pnumstrings[p]
 end
 
 Base.(:-)(x::Pnum) = Pnum(-x.v)
@@ -120,6 +173,11 @@ end
 const empty = Pbound(0x80)
 const everything = Pbound(Pnum(0x00), Pnum(0xff))
 
+function Base.convert(::Type{Pbound}, x::Real)
+  x1 = convert(Pnum, x)
+  Pbound(x1, x1)
+end
+
 function Base.show(io::IO, x::Pbound)
   if isempty(x)
     print(io, "pb\"empty\"")
@@ -148,47 +206,39 @@ function Base.show(io::IO, x::Pbound)
   end
 end
 
-function _parse(negative, reciprocal, value)
-  if negative
-    value = -value
-  end
-  if reciprocal && value == 0
-    return pn"/0"
-  else
-    # TODO deal with other reciprocal cases
-    # TODO deal with "in-between" values (probably by erroring)
-    i = searchsortedfirst(exacts, value)
-    return Pnum(UInt8(mod(2*i - 4, 8)))
-  end
+function parseexact(::Type{Pbound}, match)
+  x = parseexact(Pnum, match)
+  return Pbound(x, x)
 end
 
-function parsefirst(closed, negative, reciprocal, value)
-  x = _parse(negative, reciprocal, value)
-  return closed ? x : next(x)
-end
-
-function parsesecond(closed, negative, reciprocal, value)
-  x = _parse(negative, reciprocal, value)
-  return closed ? x : prev(x)
-end
-
-macro pb_str(p)
-  p == "empty" && return empty
-  p == "everything" && return everything
-  m = match(r"([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)([\]\)])", p)
+function parseinterval(::Type{Pbound}, match)
   x1 = parsefirst(
-    m.captures[1] == "[",
-    m.captures[2] == "-",
-    m.captures[3] == "/",
-    parse(Int, m.captures[4])
+    match.captures[1] == "[",
+    match.captures[2] == "-",
+    match.captures[3] == "/",
+    parse(Int, match.captures[4])
   )
   x2 = parsesecond(
-    m.captures[8] == "]",
-    m.captures[5] == "-",
-    m.captures[6] == "/",
-    parse(Int, m.captures[7])
+    match.captures[8] == "]",
+    match.captures[5] == "-",
+    match.captures[6] == "/",
+    parse(Int, match.captures[7])
   )
-  Pbound(x1, x2)
+  return Pbound(x1, x2)
+end
+
+function Base.parse(::Type{Pbound}, str)
+  str == "empty" && return empty
+  str == "everything" && return everything
+  m = match(r"^(-?)(/?)(\d)$", str)
+  m != nothing && return parseexact(Pbound, m)
+  m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
+  m != nothing && return parseinterval(Pbound, m)
+  throw(ArgumentError("Improperly formatted Pbound"))
+end
+
+macro pb_str(str)
+  parse(Pbound, str)
 end
 
 function Base.(:-)(x::Pbound)
