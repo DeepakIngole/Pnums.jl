@@ -85,6 +85,7 @@ end
 # Note, returns a Pbound
 function slowplus(x::Pnum, y::Pnum)
   (isinf(x) && isinf(y)) && return pbeverything
+  (isinf(x) || isinf(y)) && return pbinf
 
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
@@ -109,6 +110,8 @@ end
 function slowtimes(x::Pnum, y::Pnum)
   (isinf(x) && iszero(y)) && return pbeverything
   (iszero(x) && isinf(y)) && return pbeverything
+  (isinf(x) || isinf(y)) && return pbinf
+  (iszero(x) || iszero(y)) && return pbzero
 
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
@@ -135,9 +138,9 @@ end
 
 # TODO plan to replace these with lut operations at some point (maybe)
 Base.(:+)(x::Pnum, y::Pnum) = slowplus(x, y)
-Base.(:-)(x::Pnum, y::Pnum) = slowplus(x, -y)
+Base.(:-)(x::Pnum, y::Pnum) = x + (-y)
 Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
-Base.(:/)(x::Pnum, y::Pnum) = slowtimes(x, recip(y))
+Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
 
 # A Pbound is stored as a packed binary UInt, consisting of a leading
 # two bit tag followed by 2 Pnums.
@@ -181,6 +184,7 @@ end
 const pbempty = rawpbound(UInt8(1 << (8*sizeof(Pbound) - 1))) # "10000000"
 const pbeverything = Pbound(pnzero, prev(pnzero))
 const pbzero = Pbound(pnzero, pnzero)
+const pbinf = Pbound(pninf, pninf)
 
 Base.zero(::Type{Pbound}) = pbzero
 

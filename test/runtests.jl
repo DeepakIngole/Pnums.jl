@@ -115,6 +115,13 @@ end
 @test pn"/0" + pn"0" == pb"/0"
 @test pn"/0" + pn"/0" == pb"everything"
 
+for v1 in 0x00:0x07
+  x1 = Pnums.rawpnum(v1)
+  if !isinf(x1)
+    x1 + pn"/0" == pn"/0"
+  end
+end
+
 @test pn"(0, 1)" + pn"(0, 1)" == pb"(0, /0)"
 @test pn"(0, 1)" + pn"(1, /0)" == pb"(1, /0)"
 @test pn"(0, 1)" + pn"(/0, -1)" == pb"(/0, 0)"
@@ -130,6 +137,14 @@ end
 @test pn"0" * pn"/0" == pb"everything"
 @test pn"/0" * pn"0" == pb"everything"
 @test pn"/0" * pn"/0" == pb"/0"
+
+for v1 in 0x00:0x07
+  x1 = Pnums.rawpnum(v1)
+  if !isinf(x1) && !Pnums.iszero(x1)
+    x1*pn"0" == pn"0"
+    x1*pn"/0" == pn"/0"
+  end
+end
 
 @test pn"(0, 1)" * pn"(0, 1)" == pb"(0, 1)"
 @test pn"(0, 1)" * pn"(1, /0)" == pb"(0, /0)"
