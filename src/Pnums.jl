@@ -24,10 +24,6 @@ end
 # TODO am I going to get hurt by endianness here?
 immutable Pnum
   v::UInt8
-  # TODO, don't make this constructor part of the public interface. It's
-  # kind of dangerous because it just masks off a bunch of bits. I think
-  # I want to move to having the Pnum constructor call "convert", and
-  # requiring use of a "Bitmask" to do raw construction.
   Pnum(b::Bitmask{UInt8}) = new(b.v & pnmask)
 end
 
