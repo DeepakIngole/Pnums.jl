@@ -75,7 +75,7 @@ recip(x::Pnum) = rawpnum(-x.v - pninf.v)
 # and the lookup tables will be used for runtime arithmetic
 
 function _exactplus(x::Pnum, y::Pnum)
-  isinf(x) || isinf(y) ? pninf : convert(Pnum, exactvalue(x) + exactvalue(y))
+  (isinf(x) || isinf(y)) ? pninf : convert(Pnum, exactvalue(x) + exactvalue(y))
 end
 
 # Note, returns a Pbound
@@ -99,7 +99,7 @@ function slowplus(x::Pnum, y::Pnum)
 end
 
 function _exacttimes(x::Pnum, y::Pnum)
-  isinf(x) || isinf(y) ? pninf : convert(Pnum, exactvalue(x)*exactvalue(y))
+  (isinf(x) || isinf(y)) ? pninf : convert(Pnum, exactvalue(x)*exactvalue(y))
 end
 
 # Note, returns a Pbound
@@ -181,6 +181,9 @@ const pbempty = rawpbound(UInt8(1 << (8*sizeof(Pbound) - 1))) # "10000000"
 const pbeverything = Pbound(pnzero, prev(pnzero))
 const pbzero = Pbound(pnzero, pnzero)
 const pbinf = Pbound(pninf, pninf)
+const pbfinite = Pbound(next(pninf), prev(pninf))
+const pbneg = Pbound(next(pninf), prev(pnzero))
+const pbpos = Pbound(next(pnzero), prev(pninf))
 
 Base.zero(::Type{Pbound}) = pbzero
 
@@ -214,6 +217,85 @@ function Base.in(y::Pnum, x::Pbound)
   y.v - x1.v <= x2.v - x1.v
 end
 
+function Base.intersect(x::Pbound, y::Pbound)
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  (xempty || yempty) && return (pbempty, pbempty)
+  iseverything(x) && return (y, pbempty)
+  iseverything(y) && return (x, pbempty)
+  x == y && return (x, pbempty)
+
+  # x and y cover the entire projective circle, but are not equal
+  # thus they have 2 intersections
+  x1 in y && x2 in y && y1 in x && y2 in x && return (Pbound(y1, x2), Pbound(x1, y2))
+  # One bound covers the other
+  x1 in y && x2 in y && return (x, pbempty)
+  y1 in x && y2 in x && return (y, pbempty)
+  # Bounds overlap
+  x1 in y && return (Pbound(x1, y2), pbempty)
+  x2 in y && return (Pbound(y1, x2), pbempty)
+  # Bounds are disjoint
+  return (pbempty, pbempty)
+end
+
+function indexlength(x::Pbound)
+  xempty, x1, x2 = unpack(x)
+  xempty && return zero(x1.v)
+  mod(x2.v - x1.v, pnnvalues)
+end
+
+function shortestcover(x::Pbound, y::Pbound)
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  xempty && yempty && return pbempty
+  xempty && return y
+  yempty && return x
+  (iseverything(x) || iseverything(y)) && return pbeverything
+  x == y && return x
+
+  z1 = Pbound(x1, y2)
+  z2 = Pbound(y1, x2)
+
+  # x and y cover the entire projective circle
+  x1 in y && x2 in y && y1 in x && y2 in x && return pbeverything
+  # One bound covers the other
+  x1 in y && x2 in y && return y
+  y1 in x && y2 in x && return x
+  # bounds overlap but do not wrap around
+  x1 in y && return z2
+  x2 in y && return z1
+  # bounds are disjoint, return "shortest" covering bound
+  return indexlength(z1) < indexlength(z2) ? z1 : z2
+end
+
+function finiteplus(x::Pbound, y::Pbound)
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  (xempty || yempty) && return pbempty
+  z1empty, z11, z12 = unpack(x1 + y1)
+  z2empty, z21, z22 = unpack(x2 + y2)
+  (z1empty || z2empty) && return pbempty
+  Pbound(z11, z22)
+end
+
+function Base.(:+)(x::Pbound, y::Pbound)
+  (isempty(x) || isempty(y)) && return pbempty
+  (pninf in x && pninf in y) && return pbeverything
+
+  if pninf in x
+    x1, x2 = intersect(pbfinite, x)
+    return shortestcover(shortestcover(finiteplus(x1, y), pbinf), finiteplus(x2, y))
+  end
+
+  if pninf in y
+    y1, y2 = intersect(pbfinite, y)
+    return shortestcover(shortestcover(finiteplus(x, y1), pbinf), finiteplus(x, y2))
+  end
+
+  return finiteplus(x, y)
+end
+
+Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
 
 immutable Sopn
   v::UInt8
