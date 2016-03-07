@@ -403,6 +403,12 @@ end
 Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
 Base.(:/)(x::Pbound, y::Pbound) = x*recip(y)
 
+function Base.(:(==))(x::Pbound, y::Pbound)
+  isempty(x) && return isempty(y)
+  iseverything(x) && return iseverything(y)
+  return x.v == y.v
+end
+
 immutable Sopn
   v::UInt8
   Sopn(b::Bitmask{UInt8}) = new(b.v)
