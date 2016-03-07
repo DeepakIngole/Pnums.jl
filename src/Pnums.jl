@@ -214,6 +214,96 @@ function Base.in(y::Pnum, x::Pbound)
   y.v - x1.v <= x2.v - x1.v
 end
 
+
+immutable Sopn
+  v::UInt8
+  Sopn(b::Bitmask{UInt8}) = new(b.v)
+end
+
+rawsopn(v::UInt8) = Sopn(Bitmask(v))
+
+const sopnempty = rawsopn(0x00)
+
+# TODO define symmetrized versions
+Base.union(x::Sopn, y::Pnum) = rawsopn(x.v | (one(y.v) << y.v))
+# TODO let this fall out of promotion rules
+Base.union(x::Sopn, y::Pbound) = union(x, Sopn(y))
+Base.union(x::Sopn, y::Sopn) = rawsopn(x.v | y.v)
+Base.intersect(x::Sopn, y::Sopn) = rawsopn(x.v & y.v)
+
+function Base.in(x::Pnum, s::Sopn)
+  m = one(x.v) << x.v
+  (m & s.v) != zero(x.v)
+end
+
+const pnvrange = zero(pnnvalues):(pnnvalues - one(pnnvalues))
+
+Base.convert(::Type{Sopn}, x::Pnum) = union(sopnempty, x)
+
+# TODO make a way to iterate over the Pnums in a Pbound
+function Base.convert(::Type{Sopn}, x::Pbound)
+  out = sopnempty
+  for v in pnvrange
+    y = rawpnum(v)
+    if y in x
+      out = union(out, y)
+    end
+  end
+  out
+end
+
+Sopn(x::Pnum) = convert(Sopn, x)
+Sopn(x::Pbound) = convert(Sopn, x)
+
+function Base.(:-)(x::Sopn)
+  out = sopnempty
+  for xv in pnvrange
+    xp = rawpnum(xv)
+    if xp in x
+      out = union(out, -xp)
+    end
+  end
+  out
+end
+
+function recip(x::Sopn)
+  out = sopnempty
+  for xv in pnvrange
+    xp = rawpnum(xv)
+    if xp in x
+      out = union(out, recip(xp))
+    end
+  end
+  out
+end
+
+function Base.(:+)(x::Sopn, y::Sopn)
+  out = sopnempty
+  for xv in pnvrange, yv in pnvrange
+    xp = rawpnum(xv)
+    yp = rawpnum(yv)
+    if xp in x && yp in y
+      out = union(out, xp + yp)
+    end
+  end
+  out
+end
+
+function Base.(:*)(x::Sopn, y::Sopn)
+  out = sopnempty
+  for xv in pnvrange, yv in pnvrange
+    xp = rawpnum(xv)
+    yp = rawpnum(yv)
+    if xp in x && yp in y
+      out = union(out, xp*yp)
+    end
+  end
+  out
+end
+
+Base.(:-)(x::Sopn, y::Sopn) = x + (-y)
+Base.(:/)(x::Sopn, y::Sopn) = x*recip(y)
+
 # Arithmetic:
 # Make tables for + and *. They will be 8x8 arrays of Pbounds.
 # All arithmetic on "nothing" produces "nothing"
