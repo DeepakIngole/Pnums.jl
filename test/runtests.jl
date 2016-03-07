@@ -41,14 +41,14 @@ using Base.Test
 @test recip(pn"(-1, 0)") == pn"(/0, -1)"
 
 # isexact
-@test isexact(pn"0") == true
-@test isexact(pn"(0, 1)") == false
-@test isexact(pn"1") == true
-@test isexact(pn"(1, /0)") == false
-@test isexact(pn"/0") == true
-@test isexact(pn"(/0, -1)") == false
-@test isexact(pn"-1") == true
-@test isexact(pn"(-1, 0)") == false
+@test Pnums.isexact(pn"0") == true
+@test Pnums.isexact(pn"(0, 1)") == false
+@test Pnums.isexact(pn"1") == true
+@test Pnums.isexact(pn"(1, /0)") == false
+@test Pnums.isexact(pn"/0") == true
+@test Pnums.isexact(pn"(/0, -1)") == false
+@test Pnums.isexact(pn"-1") == true
+@test Pnums.isexact(pn"(-1, 0)") == false
 
 # next
 @test Pnums.next(pn"0") == pn"(0, 1)"

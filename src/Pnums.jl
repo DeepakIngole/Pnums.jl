@@ -398,6 +398,6 @@ Base.(:/)(x::Sopn, y::Sopn) = x*recip(y)
 
 include("./io.jl")
 
-export Pnum, Pbound, @pn_str, @pb_str, isexact, recip
+export Pnum, Pbound, @pn_str, @pb_str, recip
 
 end
