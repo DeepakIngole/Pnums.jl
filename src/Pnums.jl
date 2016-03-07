@@ -182,6 +182,7 @@ const pbeverything = Pbound(pnzero, prev(pnzero))
 const pbzero = Pbound(pnzero, pnzero)
 const pbinf = Pbound(pninf, pninf)
 const pbfinite = Pbound(next(pninf), prev(pninf))
+const pbnonzero = Pbound(next(pnzero), prev(pnzero))
 const pbneg = Pbound(next(pninf), prev(pnzero))
 const pbpos = Pbound(next(pnzero), prev(pninf))
 
@@ -268,14 +269,25 @@ function shortestcover(x::Pbound, y::Pbound)
   return indexlength(z1) < indexlength(z2) ? z1 : z2
 end
 
+# Make shortestcover variadic
+shortestcover(x, y, zs...) = shortestcover(shortestcover(x, y), zs...)
+
+# Useful for convex operations on Pbounds, where we know we can just
+# take the range between the bottom of the first element and the top
+# of the second. This method is a little dangerous because it requires
+# carefully thinking about whether an operation is actually convex.
+function outer(x::Pbound, y::Pbound)
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  (xempty || yempty) && return pbempty
+  Pbound(x1, y2)
+end
+
 function finiteplus(x::Pbound, y::Pbound)
   xempty, x1, x2 = unpack(x)
   yempty, y1, y2 = unpack(y)
   (xempty || yempty) && return pbempty
-  z1empty, z11, z12 = unpack(x1 + y1)
-  z2empty, z21, z22 = unpack(x2 + y2)
-  (z1empty || z2empty) && return pbempty
-  Pbound(z11, z22)
+  outer(x1 + y1, x2 + y2)
 end
 
 function Base.(:+)(x::Pbound, y::Pbound)
@@ -284,18 +296,112 @@ function Base.(:+)(x::Pbound, y::Pbound)
 
   if pninf in x
     x1, x2 = intersect(pbfinite, x)
-    return shortestcover(shortestcover(finiteplus(x1, y), pbinf), finiteplus(x2, y))
+    return shortestcover(pbinf, finiteplus(x1, y), finiteplus(x2, y))
   end
 
   if pninf in y
     y1, y2 = intersect(pbfinite, y)
-    return shortestcover(shortestcover(finiteplus(x, y1), pbinf), finiteplus(x, y2))
+    return shortestcover(pbinf, finiteplus(x, y1), finiteplus(x, y2))
   end
 
   return finiteplus(x, y)
 end
 
+function isstrictlypositive(x::Pbound)
+  empty, x1, x2 = unpack(x)
+  empty && return false # Is this the right thing to do?
+  (pnzero in x || pninf in x) && return false
+  return (x1 in pbpos && x2 in pbpos)
+end
+
+function finitenonzeropositivetimes(x::Pbound, y::Pbound)
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  (xempty || yempty) && return pbempty
+
+  outer(x1*y1, x2*y2)
+end
+
+function finitenonzerotimes(x::Pbound, y::Pbound)
+  if !isstrictlypositive(x) && !isstrictlypositive(y)
+    return finitenonzeropositivetimes(-x, -y)
+  elseif !isstrictlypositive(x)
+    -finitenonzeropositivetimes(-x, y)
+  elseif !isstrictlypositive(y)
+    -finitenonzeropositivetimes(x, -y)
+  else
+    finitenonzeropositivetimes(x, y)
+  end
+end
+
+function finitetimes(x::Pbound, y::Pbound)
+  (isempty(x) || isempty(y)) && return pbempty
+
+  if pnzero in x && pnzero in y
+    x1, x2 = intersect(pbnonzero, x)
+    y1, y2 = intersect(pbnonzero, y)
+    return shortestcover(
+      pbzero,
+      finitenonzerotimes(x1, y1),
+      finitenonzerotimes(x1, y2),
+      finitenonzerotimes(x2, y1),
+      finitenonzerotimes(x2, y2)
+    )
+  end
+
+  if pnzero in x
+    x1, x2 = intersect(pbnonzero, x)
+    return shortestcover(
+      pbzero,
+      finitenonzerotimes(x1, y),
+      finitenonzerotimes(x2, y)
+    )
+  end
+
+  if pnzero in y
+    y1, y2 = intersect(pbnonzero, y)
+    return shortestcover(
+      pbzero,
+      finitenonzerotimes(x, y1),
+      finitenonzerotimes(x, y2)
+    )
+  end
+
+  return finitenonzerotimes(x, y)
+end
+
+function Base.(:*)(x::Pbound, y::Pbound)
+  (isempty(x) || isempty(y)) && return pbempty
+  (pninf in x && pnzero in y) && return pbeverything
+  (pnzero in x && pninf in y) && return pbeverything
+
+  if pninf in x && pninf in y
+    x1, x2 = intersect(pbfinite, x)
+    y1, y2 = intersect(pbfinite, y)
+    return shortestcover(
+      pbinf,
+      finitetimes(x1, y1),
+      finitetimes(x1, y2),
+      finitetimes(x2, y1),
+      finitetimes(x2, y2)
+    )
+  end
+
+  if pninf in x
+    x1, x2 = intersect(pbfinite, x)
+    return shortestcover(pbinf, finitetimes(x1, y), finitetimes(x2, y))
+  end
+
+  if pninf in y
+    y1, y2 = intersect(pbfinite, y)
+    return shortestcover(pbinf, finitetimes(x, y1), finitetimes(x, y2))
+  end
+
+  return finitetimes(x, y)
+end
+
 Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
+Base.(:/)(x::Pbound, y::Pbound) = x*recip(y)
 
 immutable Sopn
   v::UInt8

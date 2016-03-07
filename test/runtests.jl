@@ -196,6 +196,8 @@ for v1 in 0x00:0x3f, v2 in v1:0x3f
   x2 = Pnums.rawpbound(v2)
   @test Pnums.Sopn(x1 + x2) == Pnums.Sopn(x1) + Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 - x2) == Pnums.Sopn(x1) - Pnums.Sopn(x2)
+  @test Pnums.Sopn(x1 * x2) == Pnums.Sopn(x1) * Pnums.Sopn(x2)
+  @test Pnums.Sopn(x1 / x2) == Pnums.Sopn(x1) / Pnums.Sopn(x2)
 end
 
 # TODO need a way to just iterate over all possible Pbounds, including "empty".
@@ -205,7 +207,13 @@ for v1 in 0x00:0x3f
   @test Pnums.Sopn(x1 + pb"empty") == Pnums.Sopn(x1) + Pnums.Sopn(pb"empty")
   @test Pnums.Sopn(pb"empty" - x1) == Pnums.Sopn(pb"empty") - Pnums.Sopn(x1)
   @test Pnums.Sopn(x1 - pb"empty") == Pnums.Sopn(x1) - Pnums.Sopn(pb"empty")
+  @test Pnums.Sopn(pb"empty" * x1) == Pnums.Sopn(pb"empty") * Pnums.Sopn(x1)
+  @test Pnums.Sopn(x1 * pb"empty") == Pnums.Sopn(x1) * Pnums.Sopn(pb"empty")
+  @test Pnums.Sopn(pb"empty" / x1) == Pnums.Sopn(pb"empty") / Pnums.Sopn(x1)
+  @test Pnums.Sopn(x1 / pb"empty") == Pnums.Sopn(x1) / Pnums.Sopn(pb"empty")
 end
 
 @test Pnums.Sopn(pb"empty" + pb"empty") == Pnums.Sopn(pb"empty") + Pnums.Sopn(pb"empty")
 @test Pnums.Sopn(pb"empty" - pb"empty") == Pnums.Sopn(pb"empty") - Pnums.Sopn(pb"empty")
+@test Pnums.Sopn(pb"empty" * pb"empty") == Pnums.Sopn(pb"empty") * Pnums.Sopn(pb"empty")
+@test Pnums.Sopn(pb"empty" / pb"empty") == Pnums.Sopn(pb"empty") / Pnums.Sopn(pb"empty")
