@@ -139,7 +139,7 @@ Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
 Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
 
 # Index midpoint between two Pnums. Note that this is asymmetric in
-# the arguments: reversing them with return a point 180 degrees away.
+# the arguments: reversing them will return a point 180 degrees away.
 function bisect(x::Pnum, y::Pnum)
   inc = mod(y.v - x.v, pnnvalues) >> one(x.v)
   rawpnum(mod(x.v + inc, pnnvalues))

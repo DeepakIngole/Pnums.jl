@@ -8,7 +8,7 @@ This is an experimental prototype. I'm not ready to make any commitments to the 
 
 ## Description
 
-Pnum stands for either "prototype Unum," or "projective number." I haven't totally decided yet. I don't want to call these Unums yet, because I've only implemented a tiny bit of the Unums 2.0 proposal, and I'm implementing some things that aren't in it, AFAICT (intervals with Pnum endpoints, akin to Unums 1.0 Ubounds, which I'm calling Pbounds).
+Pnum stands for either "prototype Unum," or "projective number." I haven't totally decided yet. I don't want to call these Unums yet, because I've only implemented a tiny bit of the Unums 2.0 proposal, and I would like to have the freedom to experiment with ideas that may not be part of the proposal.
 
 Pnums are exactly as described by Gustafson for [Unums 2.0](http://www.johngustafson.net/presentations/Multicore2016-JLG.pdf). They are encoded as indexes into a lookup table of exact values, and alternate between representing one of these exact values or representing the open interval between successive exact values.
 
@@ -16,10 +16,44 @@ Pbounds represent intervals of the projective circle. They are encoded as 2 Pnum
 
 ## Roadmap
 
-In the prototype implementation so far, the exact Pnum values are -1, 0, 1, and /0, where /0 is Gustafson's notation for the single point at projective infinity.
+The initial prototype implements 3-bit Pnums: the exact values -1, 0, 1, and /0, and the open intervals between them (/0 is Guastafson's notation for the single point at projective infinity). I have implemented arithmetic operations on these Pnums, which produce 8-bit Pbounds made up of two Pnum endpoints and a two-bit tag that can signal the empty set. Arithmetic is closed over the Pbounds.
 
-After I have finished implementing arithmetic and a few functions on these Pnums and their Pbounds, I will attempt to implement a larger, "practical" Pnum; probably 15-bit Pnums that can act as endpoints for 32-bit Pbounds.
+I have also implemented simple root bisection, which is capable of things like this:
 
-I am not planning to implement Gustafson's dense Sets of Real Numbers (SORN's) until I have throughly explored Pnums and Pbounds. I may implement sparse sets before I implement dense sets, because I suspect they will be more practical. Dense SORN's are a nice, clarifying theoretical construct, but I am skeptical that they will be practically useful because they take so much space to represent.
+```
+julia> bisectvalue(x->x*(x*x - 1), pn"0")
 
-I have some ideas about how to implement a software scratchpad to enable fused operations like the fused dot product, but I don't plan to work on that until I've explored the unfused landscape.
+3-element Array{Pnums.Pbound,1}:
+  pb"-1"
+  pb"0"
+  pb"1"
+
+```
+
+Notice that this is *global* root finding; if no search range is specified, the routine will bisect over the entire set of Pnums (there are only 8 of them, so this is less impressive than it seems).
+
+There is no exact representation of 3 in the 3-bit Pnums, but bisection can still accurately find  regions that enclose the exact solution of `x^2 = 3`.
+
+```
+julia> bisectvalue(x->x*x, Pnum(3))
+
+2-element Array{Pnums.Pbound,1}:
+  pb"(/0, -1)"
+  pb"(1, /0)"
+```
+
+It is also possible to search for regions where a function may be infinite:
+
+```
+julia> bisectvalue(x->(x*x-1)/x, pn"/0")
+
+2-element Array{Pnums.Pbound,1}:
+  pb"0"
+  pb"/0"
+```
+
+Notice that projective infinity is also one of the answers.
+
+I have also implemented a rudimentary version of dense Sets of Real Numbers over these Pnums, which is currently used only for testing the correctness of the Pbound routines. This is an important function, though. Multiplication is a non-convex, saddle-shaped function, and there are many edge cases to get correct when splitting a pair of Pbounds into quadrants and reassembling the pieces of an answer.
+
+Now that 3-bit Pnums are basically working, I plan to implement 7- and 15-bit Pnums and their associated 16- and 32-bit Pbounds. Implementing these will force the design to become generic enough that it should be reasonably easy to experiment with various related systems.
