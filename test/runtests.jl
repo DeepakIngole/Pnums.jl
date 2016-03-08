@@ -221,3 +221,11 @@ end
 @test Pnums.Sopn(pb"empty" * pb"empty") == Pnums.Sopn(pb"empty") * Pnums.Sopn(pb"empty")
 @test Pnums.Sopn(pb"empty" / pb"empty") == Pnums.Sopn(pb"empty") / Pnums.Sopn(pb"empty")
 @test (pb"empty" == pb"empty") == (Pnums.Sopn(pb"empty") == Pnums.Sopn(pb"empty"))
+
+@test bisectvalue(x->x*(x-1)*(x+1), pn"0") == [ pb"-1", pb"0", pb"1" ]
+@test bisectvalue(x->x*x + 1, pn"0") == Pbound[]
+@test bisectvalue(x->x, pn"/0") == [ pb"/0" ]
+@test bisectvalue(x->(1+x)/(1-x), pn"0") == [ pb"-1", pb"/0" ]
+@test bisectvalue(x->(1+x)/(1-x), pn"/0") == [ pb"1", pb"/0" ]
+@test bisectvalue(x->x*x, Pnum(2)) == [ pb"(/0, -1)", pb"(1, /0)" ]
+@test bisectvalue(x->pb"(-1, 1)", pn"0") == [ pb"everything" ]

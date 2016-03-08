@@ -138,6 +138,13 @@ Base.(:-)(x::Pnum, y::Pnum) = x + (-y)
 Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
 Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
 
+# Index midpoint between two Pnums. Note that this is asymmetric in
+# the arguments: reversing them with return a point 180 degrees away.
+function bisect(x::Pnum, y::Pnum)
+  inc = mod(y.v - x.v, pnnvalues) >> one(x.v)
+  rawpnum(mod(x.v + inc, pnnvalues))
+end
+
 # A Pbound is stored as a packed binary UInt, consisting of a leading
 # two bit tag followed by 2 Pnums.
 #
@@ -422,6 +429,71 @@ function Base.(:(==))(x::Pbound, y::Pbound)
   return x.v == y.v
 end
 
+function bisect(x::Pbound)
+  empty, x1, x2 = unpack(x)
+  empty && return (pbempty, pbempty)
+  x1 == x2 && return (Pbound(x1), pbempty)
+  xc = bisect(x1, x2)
+  (x1 == xc || xc == x2) && return (Pbound(x1), Pbound(x2))
+  return (Pbound(x1, xc), Pbound(next(xc), x2))
+end
+
+function mergelast!(accum::Vector{Pbound}, x::Pbound)
+  if length(accum) == 0
+    push!(accum, x)
+    return
+  end
+  y = last(accum)
+  yempty, y1, y2 = unpack(y)
+  if yempty
+    # Don't really expect this. No reason to have pushed empty
+    # in the first place.
+    push!(accum, x)
+    return
+  end
+  if next(y2) in x
+    # Would be safer to do shortestcover
+    accum[end] = y1 in x ? pbeverything : outer(y, x)
+    return
+  end
+  push!(accum, x)
+end
+
+# TODO, kind of painful that we'll visit every possible Pnum for
+# functions like x -> (-1, 1), i.e. functions that we can never bound
+# away from zero.
+#
+# For production implementation, probably want to allow limiting how
+# many bounds we'll visit, and probably want to go breadth first
+# instead of depth first.
+function bisectvalue!(f, x::Pnum, y::Pbound, accum::Vector{Pbound})
+  fy = f(y)
+  x in fy || return
+  if Pbound(x) == fy
+    mergelast!(accum, y)
+    return
+  end
+  if issinglepnum(y)
+    mergelast!(accum, y)
+    return
+  end
+  y1, y2 = bisect(y)
+  bisectvalue!(f, x, y1, accum)
+  bisectvalue!(f, x, y2, accum)
+end
+
+function bisectvalue(f, x::Pnum, y::Pbound)
+  accum = Pbound[]
+  bisectvalue!(f, x, y, accum)
+  return accum
+end
+
+# Special kind of everything that splits negatives and positives.
+# Might want to do something more explicit here
+const pbbisecteverything = Pbound(next(pninf), pninf)
+
+bisectvalue(f, x::Pnum) = bisectvalue(f, x, pbbisecteverything)
+
 immutable Sopn <: Number
   v::UInt8
   Sopn(b::Bitmask{UInt8}) = new(b.v)
@@ -528,6 +600,6 @@ Base.promote_rule(::Type{Pbound}, ::Type{Pnum}) = Pbound
 
 include("./io.jl")
 
-export Pnum, Pbound, @pn_str, @pb_str, recip
+export Pnum, Pbound, @pn_str, @pb_str, recip, bisect, bisectvalue
 
 end
