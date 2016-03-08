@@ -22,7 +22,7 @@ end
 
 # Pack a Pnum into the 3 trailing bits of a UInt8
 # TODO am I going to get hurt by endianness here?
-immutable Pnum
+immutable Pnum <: Number
   v::UInt8
   Pnum(b::Bitmask{UInt8}) = new(b.v & pnmask)
 end
@@ -146,17 +146,27 @@ Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
 # "00": anti-clockwise interval from first Pnum to second
 # "11": resserved, currently illegal
 # "01": reserved, currently illegal
-immutable Pbound
+immutable Pbound <: Number
   v::UInt8
   Pbound(b::Bitmask{UInt8}) = new(b.v)
 end
 
 rawpbound(v::UInt8) = Pbound(Bitmask(v))
+
+function Base.convert(::Type{Pbound}, x::Real)
+  x1 = convert(Pnum, x)
+  Pbound(x1)
+end
+
 Pbound(x::Real) = convert(Pbound, x)
 
 const pbshiftsize = 4*sizeof(Pbound) - 1
 
 Pbound(x::Pnum, y::Pnum) = rawpbound((x.v << pbshiftsize) | y.v)
+
+Base.convert(::Type{Pbound}, x::Pnum) = Pbound(x, x)
+Pbound(x::Pnum) = Pbound(x, x)
+
 unpack(x::Pbound) = (
   isempty(x),
   rawpnum(x.v >> pbshiftsize),
@@ -164,34 +174,37 @@ unpack(x::Pbound) = (
 )
 
 isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
+
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
   mod(x1.v - x2.v, pnnvalues) == one(x.v)
 end
+
 function isexact(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
   x1.v == x2.v && isexact(x1)
 end
 
+function issinglepnum(x::Pbound)
+  empty, x1, x2 = unpack(x)
+  empty && return false
+  x1.v == x2.v
+end
+
 # There are actually n^2 representations for "empty", and n
 # representations for "everything", but these are the canonical ones.
 const pbempty = rawpbound(UInt8(1 << (8*sizeof(Pbound) - 1))) # "10000000"
 const pbeverything = Pbound(pnzero, prev(pnzero))
-const pbzero = Pbound(pnzero, pnzero)
-const pbinf = Pbound(pninf, pninf)
+const pbzero = Pbound(pnzero)
+const pbinf = Pbound(pninf)
 const pbfinite = Pbound(next(pninf), prev(pninf))
 const pbnonzero = Pbound(next(pnzero), prev(pnzero))
 const pbneg = Pbound(next(pninf), prev(pnzero))
 const pbpos = Pbound(next(pnzero), prev(pninf))
 
 Base.zero(::Type{Pbound}) = pbzero
-
-function Base.convert(::Type{Pbound}, x::Real)
-  x1 = convert(Pnum, x)
-  Pbound(x1, x1)
-end
 
 function Base.(:-)(x::Pbound)
   empty, x1, x2 = unpack(x)
@@ -409,7 +422,7 @@ function Base.(:(==))(x::Pbound, y::Pbound)
   return x.v == y.v
 end
 
-immutable Sopn
+immutable Sopn <: Number
   v::UInt8
   Sopn(b::Bitmask{UInt8}) = new(b.v)
 end
@@ -497,6 +510,11 @@ end
 
 Base.(:-)(x::Sopn, y::Sopn) = x + (-y)
 Base.(:/)(x::Sopn, y::Sopn) = x*recip(y)
+
+# Define some useful promotions
+Base.promote_rule{T<:Real}(::Type{Pnum}, ::Type{T}) = Pnum
+Base.promote_rule{T<:Real}(::Type{Pbound}, ::Type{T}) = Pbound
+Base.promote_rule(::Type{Pbound}, ::Type{Pnum}) = Pbound
 
 # Arithmetic:
 # Make tables for + and *. They will be 8x8 arrays of Pbounds.
