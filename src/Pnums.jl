@@ -52,6 +52,9 @@ function exactvalue(x::Pnum)
   end
 end
 
+# TODO, possibility that x is NaN sort of screws this up. I think we
+# might need to make this lower level, or say that you can't
+# convert NaN-able types to Pnums, only to Pbounds.
 function Base.convert(::Type{Pnum}, x::Real)
   isinf(x) && return pninf
   r = searchsorted(exacts, x)
@@ -188,47 +191,57 @@ function bisect(x::Pnum, y::Pnum)
   rawpnum(mod(x.v + inc, pnnvalues))
 end
 
-# A Pbound is stored as a packed binary UInt with the following format:
-# (1-bit tag, n-bit Pnum, 1-bit tag, n-bit Pnum). The total size is
-# thus 2*n + 2, so it's useful to use pnums of size 2^m - 1, leaving
-# room for the tag bit in Pbounds.#
-#
-# If the top tag is set to 1, the Pbound is empty regardless of its
-# other bits. The bottom tag is reserved for future use and must be
-# set to 0.
-immutable Pbound <: Number
+# A NonEmptyPbound is stored as a packed binary unsigned integer where
+# the upper and lower halves encode Pnums. This is a low-level type.
+# For general purposes, the higher level Pbound type should be used.
+# It is capable of expressing the idea of an empty pbound.
+immutable NonEmptyPbound <: Number
   v::UInt8
-  Pbound(b::Bitmask{UInt8}) = new(b.v)
+  NonEmptyPbound(b::Bitmask{UInt8}) = new(b.v)
 end
 
-rawpbound(v::UInt8) = Pbound(Bitmask(v))
+const pbshiftsize = 4*sizeof(NonEmptyPbound)
+rawnonemptypbound(v::UInt8) = NonEmptyPbound(Bitmask(v))
+unpack(x::NonEmptyPbound) = (rawpnum(x.v >> pbshiftsize), rawpnum(x.v))
+NonEmptyPbound(x::Pnum, y::Pnum) = rawnonemptypbound((x.v << pbshiftsize) | y.v)
+
+immutable Pbound <: Number
+  isempty::Bool
+  v::NonEmptyPbound
+end
+
+unpack(x::Pbound) = (isempty(x), unpack(x.v)...)
+Base.isempty(x::Pbound) = x.isempty
+
+Pbound(x::Pnum, y::Pnum) = Pbound(false, NonEmptyPbound(x, y))
+Base.convert(::Type{Pbound}, x::Pnum) = Pbound(x, x)
+Pbound(x::Pnum) = convert(Pbound, x)
+
+# There are actually n^2 representations for "empty", and n
+# representations for "everything", but these are the canonical ones.
+const pbempty = Pbound(true, NonEmptyPbound(pnzero, pnzero))
+const pbeverything = Pbound(pnzero, prev(pnzero))
+const pbzero = Pbound(pnzero)
+const pbinf = Pbound(pninf)
+const pbfinite = Pbound(next(pninf), prev(pninf))
+const pbnonzero = Pbound(next(pnzero), prev(pnzero))
+const pbneg = Pbound(next(pninf), prev(pnzero))
+const pbpos = Pbound(next(pnzero), prev(pninf))
 
 function Base.convert(::Type{Pbound}, x::Real)
-  x1 = convert(Pnum, x)
-  Pbound(x1)
+  isnan(x) && return pbempty
+  Pbound(convert(Pnum, x))
 end
-
 Pbound(x::Real) = convert(Pbound, x)
-
-const pbshiftsize = 4*sizeof(Pbound)
-
-Pbound(x::Pnum, y::Pnum) = rawpbound((x.v << pbshiftsize) | y.v)
-
-Base.convert(::Type{Pbound}, x::Pnum) = Pbound(x, x)
-Pbound(x::Pnum) = Pbound(x, x)
-
-unpack(x::Pbound) = (
-  isempty(x),
-  rawpnum(x.v >> pbshiftsize),
-  rawpnum(x.v)
-)
-
-Base.isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
+function Pbound(x::Real, y::Real)
+  (isnan(x) || isnan(y)) && return pbempty
+  Pbound(convert(Pnum, x), convert(Pnum, y))
+end
 
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  mod(x1.v - x2.v, pnnvalues) == one(x.v)
+  mod(x1.v - x2.v, pnnvalues) == one(x1.v)
 end
 
 function isexact(x::Pbound)
@@ -242,17 +255,6 @@ function issinglepnum(x::Pbound)
   empty && return false
   x1.v == x2.v
 end
-
-# There are actually n^2 representations for "empty", and n
-# representations for "everything", but these are the canonical ones.
-const pbempty = rawpbound(UInt8(1 << (8*sizeof(Pbound) - 1))) # "10000000"
-const pbeverything = Pbound(pnzero, prev(pnzero))
-const pbzero = Pbound(pnzero)
-const pbinf = Pbound(pninf)
-const pbfinite = Pbound(next(pninf), prev(pninf))
-const pbnonzero = Pbound(next(pnzero), prev(pnzero))
-const pbneg = Pbound(next(pninf), prev(pnzero))
-const pbpos = Pbound(next(pnzero), prev(pninf))
 
 Base.zero(::Type{Pbound}) = pbzero
 
@@ -305,7 +307,7 @@ end
 function indexlength(x::Pbound)
   xempty, x1, x2 = unpack(x)
   xempty && return zero(x1.v)
-  mod(x2.v - x1.v, pnnvalues) + one(x.v)
+  mod(x2.v - x1.v, pnnvalues) + one(x1.v)
 end
 
 function shortestcover(x::Pbound, y::Pbound)
@@ -467,9 +469,14 @@ Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
 Base.(:/)(x::Pbound, y::Pbound) = x*recip(y)
 
 function Base.(:(==))(x::Pbound, y::Pbound)
-  isempty(x) && return isempty(y)
-  iseverything(x) && return iseverything(y)
-  return x.v == y.v
+  xeverything, yeverything = iseverything(x), iseverything(y)
+  (xeverything && yeverything) && return true
+  (xeverything || yeverything) && return false
+  xempty, x1, x2 = unpack(x)
+  yempty, y1, y2 = unpack(y)
+  (xempty && yempty) && return true
+  (xempty || yempty) && return false
+  return x1 == y1 && x2 == y2
 end
 
 function Base.exp(x::Pbound)
