@@ -188,14 +188,14 @@ function bisect(x::Pnum, y::Pnum)
   rawpnum(mod(x.v + inc, pnnvalues))
 end
 
-# A Pbound is stored as a packed binary UInt, consisting of a leading
-# two bit tag followed by 2 Pnums.
+# A Pbound is stored as a packed binary UInt with the following format:
+# (1-bit tag, n-bit Pnum, 1-bit tag, n-bit Pnum). The total size is
+# thus 2*n + 2, so it's useful to use pnums of size 2^m - 1, leaving
+# room for the tag bit in Pbounds.#
 #
-# Tag meanings:
-# "10": empty set, regardless of the following bits.
-# "00": anti-clockwise interval from first Pnum to second
-# "11": resserved, currently illegal
-# "01": reserved, currently illegal
+# If the top tag is set to 1, the Pbound is empty regardless of its
+# other bits. The bottom tag is reserved for future use and must be
+# set to 0.
 immutable Pbound <: Number
   v::UInt8
   Pbound(b::Bitmask{UInt8}) = new(b.v)
@@ -210,7 +210,7 @@ end
 
 Pbound(x::Real) = convert(Pbound, x)
 
-const pbshiftsize = 4*sizeof(Pbound) - 1
+const pbshiftsize = 4*sizeof(Pbound)
 
 Pbound(x::Pnum, y::Pnum) = rawpbound((x.v << pbshiftsize) | y.v)
 
