@@ -13,6 +13,8 @@ const exacts = [-1//1, 0//1, 1//1]
 const pnnvalues = UInt8(2*(length(exacts) + 1))
 const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
 
+pnmod(x::UInt8) = x & pnmask
+
 # Used for indirection purposes to allow Pnum(x::Real) to do conversion
 # while still having a way to create a Pnum from raw bits. Should I
 # just use reinterpret for this purpose?
@@ -24,7 +26,7 @@ end
 # TODO am I going to get hurt by endianness here?
 immutable Pnum <: Number
   v::UInt8
-  Pnum(b::Bitmask{UInt8}) = new(b.v & pnmask)
+  Pnum(b::Bitmask{UInt8}) = new(pnmod(b.v))
 end
 
 rawpnum(v::UInt8) = Pnum(Bitmask(v))
@@ -48,7 +50,7 @@ function exactvalue(x::Pnum)
   if isinf(x)
     1//0
   else
-    exacts[mod((x.v >> 1) + 0x02, pnnvalues >> 1)]
+    exacts[pnmod(x.v + pninf.v) >> 1]
   end
 end
 
@@ -59,13 +61,13 @@ function Base.convert(::Type{Pnum}, x::Real)
   isinf(x) && return pninf
   r = searchsorted(exacts, x)
   if first(r) == last(r)
-    return rawpnum(mod(UInt8(first(r) << 1) - (pnnvalues >> 1), pnnvalues))
+    return rawpnum((UInt8(first(r)) << 1) - pninf.v)
   elseif first(r) > length(exacts)
     return prev(pninf)
   elseif last(r) == 0
     return next(pninf)
   else
-    return next(rawpnum(mod(UInt8(last(r) << 1) - (pnnvalues >> 1), pnnvalues)))
+    return next(rawpnum((UInt8(last(r)) << 1) - pninf.v))
   end
 end
 
@@ -187,8 +189,8 @@ end
 # Index midpoint between two Pnums. Note that this is asymmetric in
 # the arguments: reversing them will return a point 180 degrees away.
 function bisect(x::Pnum, y::Pnum)
-  inc = mod(y.v - x.v, pnnvalues) >> one(x.v)
-  rawpnum(mod(x.v + inc, pnnvalues))
+  inc = pnmod(y.v - x.v) >> one(x.v)
+  rawpnum(x.v + inc)
 end
 
 # A NonEmptyPbound is stored as a packed binary unsigned integer where
@@ -250,7 +252,7 @@ end
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  mod(x1.v - x2.v, pnnvalues) == one(x1.v)
+  pnmod(x1.v - x2.v) == one(x1.v)
 end
 
 function isexact(x::Pbound)
@@ -316,7 +318,7 @@ end
 function indexlength(x::Pbound)
   xempty, x1, x2 = unpack(x)
   xempty && return zero(x1.v)
-  mod(x2.v - x1.v, pnnvalues) + one(x1.v)
+  pnmod(x2.v - x1.v) + one(x1.v)
 end
 
 function shortestcover(x::Pbound, y::Pbound)
