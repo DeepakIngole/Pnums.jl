@@ -70,8 +70,7 @@ using Base.Test
 @test Pnums.prev(pn"-1") == pn"(/0, -1)"
 @test Pnums.prev(pn"(-1, 0)") == pn"-1"
 
-for v1 in 0x00:0x07, v2 in 0x00:0x07
-  x1, x2 = Pnums.rawpnum(v1), Pnums.rawpnum(v2)
+for x1 in eachpnum(pb"everything"), x2 in eachpnum(pb"everything")
   x = Pbound(x1, x2)
   @test -(-x) == x
   if pn"0" in x
@@ -102,10 +101,9 @@ for v1 in 0x00:0x07, v2 in 0x00:0x07
   end
 end
 
-for v1 in 0x00:0x07, v2 in 0x00:0x07, v3 in 0x00:0x07
-  x1, x2, x3 = Pnums.rawpnum(v1), Pnums.rawpnum(v2), Pnums.rawpnum(v3)
+for x1 in eachpnum(pb"everything"), x2 in eachpnum(pb"everything")
   x = Pbound(x1, x2)
-  if x3 in x
+  for x3 in x
     @test !(x3 in complement(x))
   end
 end
@@ -115,8 +113,7 @@ end
 @test pn"/0" + pn"0" == pb"/0"
 @test pn"/0" + pn"/0" == pb"everything"
 
-for v1 in 0x00:0x07
-  x1 = Pnums.rawpnum(v1)
+for x1 in eachpnum(pb"everything")
   if !isinf(x1)
     x1 + pn"/0" == pn"/0"
   end
@@ -138,8 +135,7 @@ end
 @test pn"/0" * pn"0" == pb"everything"
 @test pn"/0" * pn"/0" == pb"/0"
 
-for v1 in 0x00:0x07
-  x1 = Pnums.rawpnum(v1)
+for x1 in eachpnum(pb"everything")
   if !isinf(x1) && !Pnums.iszero(x1)
     x1*pn"0" == pn"0"
     x1*pn"/0" == pn"/0"

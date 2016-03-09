@@ -223,7 +223,7 @@ unpack(x::Pbound) = (
   rawpnum(x.v)
 )
 
-isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
+Base.isempty(x::Pbound) = leading_zeros(x.v) == 0 # checks top bit
 
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
@@ -305,7 +305,7 @@ end
 function indexlength(x::Pbound)
   xempty, x1, x2 = unpack(x)
   xempty && return zero(x1.v)
-  mod(x2.v - x1.v, pnnvalues)
+  mod(x2.v - x1.v, pnnvalues) + one(x.v)
 end
 
 function shortestcover(x::Pbound, y::Pbound)
@@ -544,6 +544,26 @@ const pbbisecteverything = Pbound(next(pninf), pninf)
 
 bisectvalue(f, x::Pnum) = bisectvalue(f, x, pbbisecteverything)
 
+immutable PboundIterator
+  pb::Pbound
+  len::Int
+end
+
+eachpnum(x::Pbound) = PboundIterator(x, indexlength(x))
+
+function Base.start(x::PboundIterator)
+  xempty, x1, x2 = unpack(x.pb)
+  (x1, 1)
+end
+
+Base.next(x::PboundIterator, t) = (first(t), (next(first(t)), last(t) + 1))
+
+function Base.done(x::PboundIterator, t)
+  last(t) > x.len
+end
+
+Base.eltype(x::PboundIterator) = Pnum
+
 immutable Sopn <: Number
   v::UInt8
   Sopn(b::Bitmask{UInt8}) = new(b.v)
@@ -565,84 +585,77 @@ function Base.in(x::Pnum, s::Sopn)
   (m & s.v) != zero(x.v)
 end
 
-const pnvrange = zero(pnnvalues):(pnnvalues - one(pnnvalues))
+function Base.isempty(s::Sopn)
+  s.v == 0
+end
+
+immutable SopnIterator
+  s::Sopn
+end
+
+eachpnum(x::Sopn) = SopnIterator(x)
+
+function Base.start(x::SopnIterator)
+  (0, x.s.v)
+end
+
+function Base.next(x::SopnIterator, t)
+  i = first(t)
+  v = last(t)
+  n = trailing_zeros(v)
+  rawpnum(UInt8(i + n)), (i + n + 1, v >> (n + 1))
+end
+
+function Base.done(x::SopnIterator, t)
+  last(t) == 0
+end
+
+Base.eltype(x::SopnIterator) = Pnum
 
 Base.convert(::Type{Sopn}, x::Pnum) = union(sopnempty, x)
 
-# TODO make a way to iterate over the Pnums in a Pbound
-function Base.convert(::Type{Sopn}, x::Pbound)
-  out = sopnempty
-  for v in pnvrange
-    y = rawpnum(v)
-    if y in x
-      out = union(out, y)
-    end
-  end
-  out
-end
+Base.convert(::Type{Sopn}, x::Pbound) = reduce(union, sopnempty, eachpnum(x))
 
 Sopn(x::Pnum) = convert(Sopn, x)
 Sopn(x::Pbound) = convert(Sopn, x)
 
-function Base.(:-)(x::Sopn)
-  out = sopnempty
-  for xv in pnvrange
-    xp = rawpnum(xv)
-    if xp in x
-      out = union(out, -xp)
-    end
-  end
-  out
-end
+Base.(:-)(x::Sopn) = mapreduce((-), union, sopnempty, eachpnum(x))
+recip(x::Sopn) = mapreduce(recip, union, sopnempty, eachpnum(x))
 
-function recip(x::Sopn)
-  out = sopnempty
-  for xv in pnvrange
-    xp = rawpnum(xv)
-    if xp in x
-      out = union(out, recip(xp))
-    end
-  end
-  out
-end
-
+# TODO simplify 2 arg functions with metaprogramming
 function Base.(:+)(x::Sopn, y::Sopn)
   out = sopnempty
-  for xv in pnvrange, yv in pnvrange
-    xp = rawpnum(xv)
-    yp = rawpnum(yv)
-    if xp in x && yp in y
-      out = union(out, xp + yp)
-    end
+  for xp in eachpnum(x), yp in eachpnum(y)
+    out = union(out, xp + yp)
+  end
+  out
+end
+
+function Base.(:-)(x::Sopn, y::Sopn)
+  out = sopnempty
+  for xp in eachpnum(x), yp in eachpnum(y)
+    out = union(out, xp - yp)
   end
   out
 end
 
 function Base.(:*)(x::Sopn, y::Sopn)
   out = sopnempty
-  for xv in pnvrange, yv in pnvrange
-    xp = rawpnum(xv)
-    yp = rawpnum(yv)
-    if xp in x && yp in y
-      out = union(out, xp*yp)
-    end
+  for xp in eachpnum(x), yp in eachpnum(y)
+    out = union(out, xp*yp)
   end
   out
 end
 
-Base.(:-)(x::Sopn, y::Sopn) = x + (-y)
-Base.(:/)(x::Sopn, y::Sopn) = x*recip(y)
-
-function Base.exp(x::Sopn)
+function Base.(:/)(x::Sopn, y::Sopn)
   out = sopnempty
-  for xv in pnvrange
-    xp = rawpnum(xv)
-    if xp in x
-      out = union(out, exp(xp))
-    end
+  for xp in eachpnum(x), yp in eachpnum(y)
+    out = union(out, xp/yp)
   end
   out
 end
+
+Base.exp(x::Sopn) = mapreduce(exp, union, sopnempty, eachpnum(x))
 
 # Define some useful promotions
 Base.promote_rule{T<:Real}(::Type{Pnum}, ::Type{T}) = Pnum
@@ -661,6 +674,6 @@ Base.promote_rule(::Type{Pbound}, ::Type{Pnum}) = Pbound
 
 include("./io.jl")
 
-export Pnum, Pbound, @pn_str, @pb_str, recip, bisect, bisectvalue
+export Pnum, Pbound, @pn_str, @pb_str, recip, bisect, bisectvalue, eachpnum
 
 end
