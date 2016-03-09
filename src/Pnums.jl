@@ -138,6 +138,49 @@ Base.(:-)(x::Pnum, y::Pnum) = x + (-y)
 Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
 Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
 
+function Base.exp(x::Pnum)
+  # TODO exp(pn"/0") = pb"[0, /0]" is a little painful; it should really
+  # be the disconnected set {pn"0", pn"/0"}.
+  isinf(x) && return Pbound(pnzero, pninf)
+  xexact = isexact(x)
+
+  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
+  if xexact
+    y1 = y2 = Pnum(exp(exactvalue(x1)))
+  else
+    y1, y2 = Pnum(exp(exactvalue(x1))), Pnum(exp(exactvalue(x2)))
+  end
+
+  # The only inputs that should return an exact output are 0 and infinity.
+  # Taking a conservative approach of just widening the result in case
+  # floating point exp rounds to one of our exact values. I don't want to
+  # deal with rounding modes for now.
+  if isexact(y1)
+    if iszero(x1)
+      y1 = xexact ? y1 : next(y1)
+    elseif isinf(x1)
+      y1 = xexact ? y1 : next(y1)
+    else
+      y1 = prev(y1)
+    end
+  end
+
+  if isexact(y2)
+    if iszero(x2)
+      y2 = xexact ? y2 : prev(y2)
+    elseif isinf(x2)
+      y2 = xexact ? y2 : prev(y2)
+    else
+      y2 = next(y2)
+    end
+  end
+
+  isinf(x1) && return Pbound(next(pnzero), y2)
+  isinf(x2) && return Pbound(y1, prev(pninf))
+
+  Pbound(y1, y2)
+end
+
 # Index midpoint between two Pnums. Note that this is asymmetric in
 # the arguments: reversing them will return a point 180 degrees away.
 function bisect(x::Pnum, y::Pnum)
@@ -429,6 +472,13 @@ function Base.(:(==))(x::Pbound, y::Pbound)
   return x.v == y.v
 end
 
+function Base.exp(x::Pbound)
+  xempty, x1, x2 = unpack(x)
+  xempty && return x
+  pninf in x && return Pbound(pnzero, pninf)
+  outer(exp(x1), exp(x2))
+end
+
 function bisect(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return (pbempty, pbempty)
@@ -582,6 +632,17 @@ end
 
 Base.(:-)(x::Sopn, y::Sopn) = x + (-y)
 Base.(:/)(x::Sopn, y::Sopn) = x*recip(y)
+
+function Base.exp(x::Sopn)
+  out = sopnempty
+  for xv in pnvrange
+    xp = rawpnum(xv)
+    if xp in x
+      out = union(out, exp(xp))
+    end
+  end
+  out
+end
 
 # Define some useful promotions
 Base.promote_rule{T<:Real}(::Type{Pnum}, ::Type{T}) = Pnum

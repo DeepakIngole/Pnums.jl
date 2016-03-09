@@ -229,3 +229,19 @@ end
 @test bisectvalue(x->(1+x)/(1-x), pn"/0") == [ pb"1", pb"/0" ]
 @test bisectvalue(x->x*x, Pnum(2)) == [ pb"(/0, -1)", pb"(1, /0)" ]
 @test bisectvalue(x->pb"(-1, 1)", pn"0") == [ pb"everything" ]
+
+@test exp(pn"0") == pb"1"
+@test exp(pn"(0, 1)") == pb"(1, /0)"
+@test exp(pn"1") == pb"(1, /0)"
+@test exp(pn"(1, /0)") == pb"(1, /0)"
+@test exp(pn"/0") == pb"[0, /0]"
+@test exp(pn"(/0, -1)") == pb"(0, 1)"
+@test exp(pn"-1") == pb"(0, 1)"
+@test exp(pn"(-1, 0)") == pb"(0, 1)"
+
+for v1 in 0x00:0x3f
+  x1 = Pnums.rawpbound(v1)
+  @test Pnums.Sopn(exp(x1)) == exp(Pnums.Sopn(x1))
+end
+
+@test Pnums.Sopn(exp(pb"empty")) == exp(Pnums.Sopn(pb"empty"))
