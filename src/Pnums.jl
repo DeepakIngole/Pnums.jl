@@ -220,7 +220,7 @@ Pbound(x::Pnum) = convert(Pbound, x)
 # There are actually n^2 representations for "empty", and n
 # representations for "everything", but these are the canonical ones.
 const pbempty = Pbound(true, NonEmptyPbound(pnzero, pnzero))
-const pbeverything = Pbound(pnzero, prev(pnzero))
+const pbeverything = Pbound(next(pninf), pninf)
 const pbzero = Pbound(pnzero)
 const pbinf = Pbound(pninf)
 const pbfinite = Pbound(next(pninf), prev(pninf))
@@ -545,11 +545,7 @@ function bisectvalue(f, x::Pnum, y::Pbound)
   return accum
 end
 
-# Special kind of everything that splits negatives and positives.
-# Might want to do something more explicit here
-const pbbisecteverything = Pbound(next(pninf), pninf)
-
-bisectvalue(f, x::Pnum) = bisectvalue(f, x, pbbisecteverything)
+bisectvalue(f, x::Pnum) = bisectvalue(f, x, pbeverything)
 
 immutable PboundIterator
   pb::Pbound
