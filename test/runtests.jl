@@ -185,38 +185,22 @@ end
 @test pn"(/0, -1)" / pn"(-1, 0)" == pb"(1, /0)"
 @test pn"(-1, 0)" / pn"(-1, 0)" == pb"(0, /0)"
 
+const allpbounds = let accum = Pbound[pb"empty"]
+  for x in eachpnum(pb"everything"), y in eachpnum(pb"everything")
+    push!(accum, Pbound(x, y))
+  end
+  accum
+end
+
 # Test arithmetic over bounds by checking that it is consistent with
 # Sopn arithmetic.
-for v1 in 0x00:0x3f, v2 in v1:0x3f
-  x1 = Pnums.rawpbound(v1)
-  x2 = Pnums.rawpbound(v2)
+for x1 in allpbounds, x2 in allpbounds
   @test Pnums.Sopn(x1 + x2) == Pnums.Sopn(x1) + Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 - x2) == Pnums.Sopn(x1) - Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 * x2) == Pnums.Sopn(x1) * Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 / x2) == Pnums.Sopn(x1) / Pnums.Sopn(x2)
   @test (x1 == x2) == (Pnums.Sopn(x1) == Pnums.Sopn(x2))
 end
-
-# TODO need a way to just iterate over all possible Pbounds, including "empty".
-for v1 in 0x00:0x3f
-  x1 = Pnums.rawpbound(v1)
-  @test Pnums.Sopn(pb"empty" + x1) == Pnums.Sopn(pb"empty") + Pnums.Sopn(x1)
-  @test Pnums.Sopn(x1 + pb"empty") == Pnums.Sopn(x1) + Pnums.Sopn(pb"empty")
-  @test Pnums.Sopn(pb"empty" - x1) == Pnums.Sopn(pb"empty") - Pnums.Sopn(x1)
-  @test Pnums.Sopn(x1 - pb"empty") == Pnums.Sopn(x1) - Pnums.Sopn(pb"empty")
-  @test Pnums.Sopn(pb"empty" * x1) == Pnums.Sopn(pb"empty") * Pnums.Sopn(x1)
-  @test Pnums.Sopn(x1 * pb"empty") == Pnums.Sopn(x1) * Pnums.Sopn(pb"empty")
-  @test Pnums.Sopn(pb"empty" / x1) == Pnums.Sopn(pb"empty") / Pnums.Sopn(x1)
-  @test Pnums.Sopn(x1 / pb"empty") == Pnums.Sopn(x1) / Pnums.Sopn(pb"empty")
-  @test (pb"empty" == x1) == (Pnums.Sopn(pb"empty") == Pnums.Sopn(x1))
-  @test (x1 == pb"empty") == (Pnums.Sopn(x1) == Pnums.Sopn(pb"empty"))
-end
-
-@test Pnums.Sopn(pb"empty" + pb"empty") == Pnums.Sopn(pb"empty") + Pnums.Sopn(pb"empty")
-@test Pnums.Sopn(pb"empty" - pb"empty") == Pnums.Sopn(pb"empty") - Pnums.Sopn(pb"empty")
-@test Pnums.Sopn(pb"empty" * pb"empty") == Pnums.Sopn(pb"empty") * Pnums.Sopn(pb"empty")
-@test Pnums.Sopn(pb"empty" / pb"empty") == Pnums.Sopn(pb"empty") / Pnums.Sopn(pb"empty")
-@test (pb"empty" == pb"empty") == (Pnums.Sopn(pb"empty") == Pnums.Sopn(pb"empty"))
 
 @test bisectvalue(x->x*(x-1)*(x+1), pn"0") == [ pb"-1", pb"0", pb"1" ]
 @test bisectvalue(x->x*x + 1, pn"0") == Pbound[]
@@ -235,9 +219,6 @@ end
 @test exp(pn"-1") == pb"(0, 1)"
 @test exp(pn"(-1, 0)") == pb"(0, 1)"
 
-for v1 in 0x00:0x3f
-  x1 = Pnums.rawpbound(v1)
+for x1 in allpbounds
   @test Pnums.Sopn(exp(x1)) == exp(Pnums.Sopn(x1))
 end
-
-@test Pnums.Sopn(exp(pb"empty")) == exp(Pnums.Sopn(pb"empty"))
