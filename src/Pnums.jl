@@ -202,8 +202,17 @@ end
 
 const pbshiftsize = 4*sizeof(NonEmptyPbound)
 rawnonemptypbound(v::UInt8) = NonEmptyPbound(Bitmask(v))
-unpack(x::NonEmptyPbound) = (rawpnum(x.v >> pbshiftsize), rawpnum(x.v))
-NonEmptyPbound(x::Pnum, y::Pnum) = rawnonemptypbound((x.v << pbshiftsize) | y.v)
+
+# Always store and unpack "everything" in the canonical way.
+iseverything(x::Pnum, y::Pnum) = x == next(y)
+function NonEmptyPbound(x::Pnum, y::Pnum)
+  x, y = iseverything(x, y) ? (next(pninf), pninf) : (x, y)
+  rawnonemptypbound((x.v << pbshiftsize) | y.v)
+end
+function unpack(x::NonEmptyPbound)
+  x1, x2 = rawpnum(x.v >> pbshiftsize), rawpnum(x.v)
+  return iseverything(x1, x2) ? (next(pninf), pninf) : (x1, x2)
+end
 
 immutable Pbound <: Number
   isempty::Bool
