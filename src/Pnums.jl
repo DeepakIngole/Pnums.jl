@@ -27,8 +27,10 @@ end
 storagetypeof(::Type{Pnum}) = UInt8
 const exacts = [1//1]
 const pnnvalues = convert(storagetypeof(Pnum), 8*length(exacts))
-const pnmask = convert(storagetypeof(Pnum), (pnnvalues - 0x01)) # "00000111"
-
+const pnmask = convert(
+  storagetypeof(Pnum),
+  pnnvalues - one(storagetypeof(Pnum))
+) # "00000111"
 rawpnum(v::UInt8) = Pnum(Bitmask(v))
 pnmod(x::UInt8) = x & pnmask
 const pnzero = rawpnum(zero(storagetypeof(Pnum)))
@@ -591,8 +593,9 @@ immutable Sopn <: Number
 end
 
 rawsopn(v::UInt8) = Sopn(Bitmask(v))
+storagetypeof(::Type{Sopn}) = UInt8
 
-const sopnempty = rawsopn(0x00)
+const sopnempty = rawsopn(convert(storagetypeof(Sopn), 0))
 
 # TODO define symmetrized versions
 Base.union(x::Sopn, y::Pnum) = rawsopn(x.v | (one(y.v) << y.v))
