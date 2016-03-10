@@ -48,7 +48,7 @@ isstrictlynegative(x::Pnum) = x.v > pninf.v
 
 function exactvalue(x::Pnum)
   x.v > pninf.v && return -exactvalue(-x)
-  x.v < (pninf.v >> 1) && return inv(exactvalue(recip(x)))
+  x.v < (pninf.v >> 1) && return inv(exactvalue(inv(x)))
   isinf(x) && return 1//0
   exacts[((x.v - (pninf.v >> 1)) >> 1) + 1]
 end
@@ -58,7 +58,7 @@ end
 # convert NaN-able types to Pnums, only to Pbounds.
 function Base.convert(::Type{Pnum}, x::Real)
   x < 0 && return -convert(Pnum, -x)
-  x < 1 && return recip(convert(Pnum, inv(Rational(x))))
+  x < 1 && return inv(convert(Pnum, inv(Rational(x))))
   isinf(x) && return pninf
 
   r = searchsorted(exacts, x)
@@ -75,7 +75,7 @@ end
 
 Base.(:-)(x::Pnum) = rawpnum(-x.v)
 # Negate and rotate 180 degrees
-recip(x::Pnum) = rawpnum(-x.v - pninf.v)
+Base.inv(x::Pnum) = rawpnum(-x.v - pninf.v)
 
 # Calling these slowplus and slowtimes because, in a final
 # implementation, they will probably be used to generate lookup tables,
@@ -143,7 +143,7 @@ end
 Base.(:+)(x::Pnum, y::Pnum) = slowplus(x, y)
 Base.(:-)(x::Pnum, y::Pnum) = x + (-y)
 Base.(:*)(x::Pnum, y::Pnum) = slowtimes(x, y)
-Base.(:/)(x::Pnum, y::Pnum) = x*recip(y)
+Base.(:/)(x::Pnum, y::Pnum) = x*inv(y)
 
 function Base.exp(x::Pnum)
   # TODO exp(pn"/0") = pb"[0, /0]" is a little painful; it should really
@@ -277,10 +277,10 @@ function Base.(:-)(x::Pbound)
   Pbound(-x2, -x1)
 end
 
-function recip(x::Pbound)
+function Base.inv(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return x
-  Pbound(recip(x2), recip(x1))
+  Pbound(inv(x2), inv(x1))
 end
 
 function Base.complement(x::Pbound)
@@ -479,7 +479,7 @@ function Base.(:*)(x::Pbound, y::Pbound)
 end
 
 Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
-Base.(:/)(x::Pbound, y::Pbound) = x*recip(y)
+Base.(:/)(x::Pbound, y::Pbound) = x*inv(y)
 
 function Base.(:(==))(x::Pbound, y::Pbound)
   xeverything, yeverything = iseverything(x), iseverything(y)
@@ -636,7 +636,7 @@ Sopn(x::Pnum) = convert(Sopn, x)
 Sopn(x::Pbound) = convert(Sopn, x)
 
 Base.(:-)(x::Sopn) = mapreduce((-), union, sopnempty, eachpnum(x))
-recip(x::Sopn) = mapreduce(recip, union, sopnempty, eachpnum(x))
+Base.inv(x::Sopn) = mapreduce(inv, union, sopnempty, eachpnum(x))
 
 # TODO simplify 2 arg functions with metaprogramming
 function Base.(:+)(x::Sopn, y::Sopn)
@@ -690,6 +690,6 @@ Base.promote_rule(::Type{Pbound}, ::Type{Pnum}) = Pbound
 
 include("./io.jl")
 
-export Pnum, Pbound, @pn_str, @pb_str, recip, bisect, bisectvalue, eachpnum
+export Pnum, Pbound, @pn_str, @pb_str, bisect, bisectvalue, eachpnum
 
 end

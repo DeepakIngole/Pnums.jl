@@ -31,14 +31,14 @@ using Base.Test
 @test -pn"(-1, 0)" == pn"(0, 1)"
 
 # Reciprocating Pnums
-@test recip(pn"0") == pn"/0"
-@test recip(pn"(0, 1)") == pn"(1, /0)"
-@test recip(pn"1") == pn"1"
-@test recip(pn"(1, /0)") == pn"(0, 1)"
-@test recip(pn"/0") == pn"0"
-@test recip(pn"(/0, -1)") == pn"(-1, 0)"
-@test recip(pn"-1") == pn"-1"
-@test recip(pn"(-1, 0)") == pn"(/0, -1)"
+@test inv(pn"0") == pn"/0"
+@test inv(pn"(0, 1)") == pn"(1, /0)"
+@test inv(pn"1") == pn"1"
+@test inv(pn"(1, /0)") == pn"(0, 1)"
+@test inv(pn"/0") == pn"0"
+@test inv(pn"(/0, -1)") == pn"(-1, 0)"
+@test inv(pn"-1") == pn"-1"
+@test inv(pn"(-1, 0)") == pn"(/0, -1)"
 
 # isexact
 @test Pnums.isexact(pn"0") == true
@@ -86,18 +86,18 @@ for x1 in eachpnum(pb"everything"), x2 in eachpnum(pb"everything")
     @test pn"1" in -x
   end
 
-  @test recip(recip(x)) == x
+  @test inv(inv(x)) == x
   if pn"0" in x
-    @test pn"/0" in recip(x)
+    @test pn"/0" in inv(x)
   end
   if pn"/0" in x
-    @test pn"0" in recip(x)
+    @test pn"0" in inv(x)
   end
   if pn"1" in x
-    @test pn"1" in recip(x)
+    @test pn"1" in inv(x)
   end
   if pn"-1" in x
-    @test pn"-1" in recip(x)
+    @test pn"-1" in inv(x)
   end
 end
 
