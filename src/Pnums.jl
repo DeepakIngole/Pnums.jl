@@ -29,13 +29,12 @@ const exacts = [1//1]
 const pnnvalues = convert(storagetypeof(Pnum), 8*length(exacts))
 const pnmask = convert(storagetypeof(Pnum), (pnnvalues - 0x01)) # "00000111"
 
-pnmod(x::UInt8) = x & pnmask
-
 rawpnum(v::UInt8) = Pnum(Bitmask(v))
-Pnum(x::Real) = convert(Pnum, x)
-
+pnmod(x::UInt8) = x & pnmask
 const pnzero = rawpnum(zero(storagetypeof(Pnum)))
 const pninf = rawpnum(pnnvalues >> 1)
+
+Pnum(x::Real) = convert(Pnum, x)
 
 Base.zero(::Type{Pnum}) = pnzero
 iszero(x::Pnum) = x.v == pnzero.v
@@ -260,19 +259,19 @@ end
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  pnmod(x1.v - x2.v) == one(x1.v)
+  x1 == next(x2)
 end
 
 function isexact(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  x1.v == x2.v && isexact(x1)
+  x1 == x2 && isexact(x1)
 end
 
 function issinglepnum(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  x1.v == x2.v
+  x1 == x2
 end
 
 Base.zero(::Type{Pbound}) = pbzero
