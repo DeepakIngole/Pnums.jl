@@ -205,29 +205,23 @@ function bisect(x::Pnum, y::Pnum)
   rawpnum(x.v + inc)
 end
 
+iseverything(x::Pnum, y::Pnum) = x == next(y)
+
 # A NonEmptyPbound is stored as a packed binary unsigned integer where
 # the upper and lower halves encode Pnums. This is a low-level type.
 # For general purposes, the higher level Pbound type should be used,
 # since it is capable of expressing the important idea of an empty
 # Pbound
 immutable NonEmptyPbound <: Number
-  v::UInt8
-  NonEmptyPbound(b::Bitmask{UInt8}) = new(b.v)
+  x::Pnum
+  y::Pnum
+  # Always store everything in the canonical way
+  function NonEmptyPbound(x::Pnum, y::Pnum)
+    iseverything(x, y) ? new(next(pninf), pninf) : new(x, y)
+  end
 end
 
-const pbshiftsize = 4*sizeof(NonEmptyPbound)
-rawnonemptypbound(v::UInt8) = NonEmptyPbound(Bitmask(v))
-
-# Always store and unpack "everything" in the canonical way.
-iseverything(x::Pnum, y::Pnum) = x == next(y)
-function NonEmptyPbound(x::Pnum, y::Pnum)
-  x, y = iseverything(x, y) ? (next(pninf), pninf) : (x, y)
-  rawnonemptypbound((x.v << pbshiftsize) | y.v)
-end
-function unpack(x::NonEmptyPbound)
-  x1, x2 = rawpnum(x.v >> pbshiftsize), rawpnum(x.v)
-  return iseverything(x1, x2) ? (next(pninf), pninf) : (x1, x2)
-end
+unpack(npb::NonEmptyPbound) = npb.x, npb.y
 
 immutable Pbound <: Number
   isempty::Bool
