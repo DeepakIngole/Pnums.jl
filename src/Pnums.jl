@@ -586,98 +586,93 @@ end
 Base.eltype(x::PboundIterator) = Pnum
 
 immutable Sopn <: Number
-  v::UInt8
-  Sopn(b::Bitmask{UInt8}) = new(b.v)
+  s::IntSet
+  Sopn() = new(IntSet())
 end
 
-rawsopn(v::UInt8) = Sopn(Bitmask(v))
-storagetypeof(::Type{Sopn}) = UInt8
+Sopn(itr) = reduce(union!, Sopn(), itr)
 
-const sopnempty = rawsopn(convert(storagetypeof(Sopn), 0))
+index(x::Pnum) = x.v
+fromindex(::Type{Pnum}, i) = rawpnum(convert(storagetypeof(Pnum), i))
 
 # TODO define symmetrized versions
-Base.union(x::Sopn, y::Pnum) = rawsopn(x.v | (one(y.v) << y.v))
+function Base.union!(x::Sopn, y::Pnum)
+  push!(x.s, index(y) + 1)
+  x
+end
 # TODO let this fall out of promotion rules
-Base.union(x::Sopn, y::Pbound) = union(x, Sopn(y))
-Base.union(x::Sopn, y::Sopn) = rawsopn(x.v | y.v)
-Base.intersect(x::Sopn, y::Sopn) = rawsopn(x.v & y.v)
+Base.union!(x::Sopn, y::Pbound) = reduce(union!, x, eachpnum(y))
+Base.union!(x::Sopn, y::Sopn) = reduce(union!, x, eachpnum(y))
 
-function Base.in(x::Pnum, s::Sopn)
-  m = one(x.v) << x.v
-  (m & s.v) != zero(x.v)
-end
+Base.convert(::Type{Sopn}, x::Pnum) = union!(Sopn(), x)
+Base.convert(::Type{Sopn}, x::Pbound) = Sopn(eachpnum(x))
+Sopn(x::Pnum) = convert(Sopn, x)
+Sopn(x::Pbound) = convert(Sopn, x)
 
-function Base.isempty(s::Sopn)
-  s.v == 0
-end
+Base.in(x::Pnum, s::Sopn) = (index(x) + 1) in s
+Base.isempty(x::Sopn) = isempty(x.s)
+Base.(:(==))(x::Sopn, y::Sopn) = x.s == y.s
 
-immutable SopnIterator
+type SopnIterator
   s::Sopn
 end
 
 eachpnum(x::Sopn) = SopnIterator(x)
 
 function Base.start(x::SopnIterator)
-  (0, x.s.v)
+  start(x.s.s)
 end
 
-function Base.next(x::SopnIterator, t)
-  i = first(t)
-  v = last(t)
-  n = trailing_zeros(v)
-  rawpnum(convert(storagetypeof(Pnum), i + n)), (i + n + 1, v >> (n + 1))
+function Base.next(x::SopnIterator, state)
+  id, state = Base.next(x.s.s, state)
+  (fromindex(Pnum, id - 1), state)
 end
 
-function Base.done(x::SopnIterator, t)
-  last(t) == 0
+function Base.done(x::SopnIterator, state)
+  done(x.s.s, state)
 end
+
+Base.copy(x::Sopn) = Sopn(eachpnum(x))
 
 Base.eltype(x::SopnIterator) = Pnum
 
-Base.convert(::Type{Sopn}, x::Pnum) = union(sopnempty, x)
-
-Base.convert(::Type{Sopn}, x::Pbound) = reduce(union, sopnempty, eachpnum(x))
-
-Sopn(x::Pnum) = convert(Sopn, x)
-Sopn(x::Pbound) = convert(Sopn, x)
-
-Base.(:-)(x::Sopn) = mapreduce((-), union, sopnempty, eachpnum(x))
-Base.inv(x::Sopn) = mapreduce(inv, union, sopnempty, eachpnum(x))
+Base.(:-)(x::Sopn) = mapreduce((-), union!, Sopn(), eachpnum(x))
+Base.inv(x::Sopn) = mapreduce(inv, union!, Sopn(), eachpnum(x))
 
 # TODO simplify 2 arg functions with metaprogramming
 function Base.(:+)(x::Sopn, y::Sopn)
-  out = sopnempty
+  out = Sopn()
   for xp in eachpnum(x), yp in eachpnum(y)
-    out = union(out, xp + yp)
+    union!(out, xp + yp)
   end
   out
 end
 
 function Base.(:-)(x::Sopn, y::Sopn)
-  out = sopnempty
+  out = Sopn()
   for xp in eachpnum(x), yp in eachpnum(y)
-    out = union(out, xp - yp)
+    union!(out, xp - yp)
   end
   out
 end
 
 function Base.(:*)(x::Sopn, y::Sopn)
-  out = sopnempty
+  out = Sopn()
   for xp in eachpnum(x), yp in eachpnum(y)
-    out = union(out, xp*yp)
+    union!(out, xp*yp)
   end
   out
 end
 
 function Base.(:/)(x::Sopn, y::Sopn)
-  out = sopnempty
+  out = Sopn()
   for xp in eachpnum(x), yp in eachpnum(y)
-    out = union(out, xp/yp)
+    union!(out, xp/yp)
   end
   out
 end
 
-Base.exp(x::Sopn) = mapreduce(exp, union, sopnempty, eachpnum(x))
+Base.exp(x::Sopn) = mapreduce(exp, union!, Sopn(), eachpnum(x))
 
 # Define some useful promotions
 Base.promote_rule{T<:Real}(::Type{Pnum}, ::Type{T}) = Pnum
