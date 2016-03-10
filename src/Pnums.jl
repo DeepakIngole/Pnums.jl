@@ -11,30 +11,30 @@ module Pnums
 
 typealias NonNaNReal Union{Rational, Irrational, Integer}
 
-const exacts = [1//1]
-const pnnvalues = UInt8(8*length(exacts))
-const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
-
-pnmod(x::UInt8) = x & pnmask
-
-# Used for indirection purposes to allow Pnum(x::Real) to do conversion
-# while still having a way to create a Pnum from raw bits. Should I
-# just use reinterpret for this purpose?
+# Used for indirection purposes to allow Pnum(x::Integer) to do
+# conversion by value instead of bit representation, while still having
+# a way to construct a Pnum from raw bits.
 immutable Bitmask{T}
   v::T
 end
 
 # Pack a Pnum into the 3 trailing bits of a UInt8
-# TODO am I going to get hurt by endianness here?
 immutable Pnum <: Number
   v::UInt8
   Pnum(b::Bitmask{UInt8}) = new(pnmod(b.v))
 end
 
+storagetypeof(::Type{Pnum}) = UInt8
+const exacts = [1//1]
+const pnnvalues = convert(storagetypeof(Pnum), 8*length(exacts))
+const pnmask = convert(storagetypeof(Pnum), (pnnvalues - 0x01)) # "00000111"
+
+pnmod(x::UInt8) = x & pnmask
+
 rawpnum(v::UInt8) = Pnum(Bitmask(v))
 Pnum(x::Real) = convert(Pnum, x)
 
-const pnzero = rawpnum(0x00)
+const pnzero = rawpnum(zero(storagetypeof(Pnum)))
 const pninf = rawpnum(pnnvalues >> 1)
 
 Base.zero(::Type{Pnum}) = pnzero
@@ -66,10 +66,10 @@ function _searchvalue(::Type{Pnum}, x::Real)
 
   r = searchsorted(exacts, x)
 
-  first(r) == last(r) && return rawpnum(UInt8(first(r)) << 1)
+  first(r) == last(r) && return rawpnum(convert(storagetypeof(Pnum), first(r)) << 1)
   first(r) > length(exacts) && return prev(pninf)
   last(r) == 0 && return next(pninf)
-  return next(rawpnum(UInt8(first(r)) << 1))
+  return next(rawpnum(convert(storagetypeof(Pnum), first(r)) << 1))
 end
 
 Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
@@ -625,7 +625,7 @@ function Base.next(x::SopnIterator, t)
   i = first(t)
   v = last(t)
   n = trailing_zeros(v)
-  rawpnum(UInt8(i + n)), (i + n + 1, v >> (n + 1))
+  rawpnum(convert(storagetypeof(Pnum), i + n)), (i + n + 1, v >> (n + 1))
 end
 
 function Base.done(x::SopnIterator, t)
