@@ -9,8 +9,8 @@ module Pnums
 # 110 -> [-1, -1]
 # 111 -> (-1, 0)
 
-const exacts = [-1//1, 0//1, 1//1]
-const pnnvalues = UInt8(2*(length(exacts) + 1))
+const exacts = [1//1]
+const pnnvalues = UInt8(8*length(exacts))
 const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
 
 pnmod(x::UInt8) = x & pnmask
@@ -47,27 +47,29 @@ prev(x::Pnum) = rawpnum(x.v - one(x.v))
 isstrictlynegative(x::Pnum) = x.v > pninf.v
 
 function exactvalue(x::Pnum)
-  if isinf(x)
-    1//0
-  else
-    exacts[pnmod(x.v + pninf.v) >> 1]
-  end
+  x.v > pninf.v && return -exactvalue(-x)
+  x.v < (pninf.v >> 1) && return inv(exactvalue(recip(x)))
+  isinf(x) && return 1//0
+  exacts[((x.v - (pninf.v >> 1)) >> 1) + 1]
 end
 
 # TODO, possibility that x is NaN sort of screws this up. I think we
 # might need to make this lower level, or say that you can't
 # convert NaN-able types to Pnums, only to Pbounds.
 function Base.convert(::Type{Pnum}, x::Real)
+  x < 0 && return -convert(Pnum, -x)
+  x < 1 && return recip(convert(Pnum, inv(Rational(x))))
   isinf(x) && return pninf
+
   r = searchsorted(exacts, x)
   if first(r) == last(r)
-    return rawpnum((UInt8(first(r)) << 1) - pninf.v)
+    return rawpnum(UInt8(first(r)) << 1)
   elseif first(r) > length(exacts)
     return prev(pninf)
   elseif last(r) == 0
     return next(pninf)
   else
-    return next(rawpnum((UInt8(last(r)) << 1) - pninf.v))
+    return next(rawpnum(UInt8(first(r)) << 1))
   end
 end
 

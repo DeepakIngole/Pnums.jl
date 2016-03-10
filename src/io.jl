@@ -15,9 +15,9 @@ function _frompieces(negative, reciprocal, value)
 
   value = negative ? -value : value
   value = reciprocal ? 1//value : value
-  i = searchsorted(exacts, value)
-  first(i) != last(i) && throw(InexactError())
-  return rawpnum(UInt8(mod(2*first(i) - 4, 8)))
+  out = Pnum(value)
+  out == value || throw(InexactError())
+  return out
 end
 
 function parsefirst(closed, negative, reciprocal, value)
