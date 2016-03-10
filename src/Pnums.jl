@@ -9,6 +9,8 @@ module Pnums
 # 110 -> [-1, -1]
 # 111 -> (-1, 0)
 
+typealias NonNaNReal Union{Rational, Irrational, Integer}
+
 const exacts = [1//1]
 const pnnvalues = UInt8(8*length(exacts))
 const pnmask = UInt8(pnnvalues - 0x01) # "00000111"
@@ -53,12 +55,13 @@ function exactvalue(x::Pnum)
   exacts[((x.v - (pninf.v >> 1)) >> 1) + 1]
 end
 
-# TODO, possibility that x is NaN sort of screws this up. I think we
-# might need to make this lower level, or say that you can't
-# convert NaN-able types to Pnums, only to Pbounds.
-function Base.convert(::Type{Pnum}, x::Real)
+function _searchvalue(::Type{Pnum}, x::Real)
   x < 0 && return -convert(Pnum, -x)
-  x < 1 && return inv(convert(Pnum, inv(Rational(x))))
+  # TODO, inv(x) will fail for irrationals, and lose precision for
+  # Floats. Should search by reciprocals of exact values, but I
+  # couldn't figure out how to do that with searchsorted on my first
+  # couple tries. Worst case, I'll just write the bisection myself.
+  x < 1 && return inv(convert(Pnum, inv(x)))
   isinf(x) && return pninf
 
   r = searchsorted(exacts, x)
@@ -71,6 +74,13 @@ function Base.convert(::Type{Pnum}, x::Real)
   else
     return next(rawpnum(UInt8(first(r)) << 1))
   end
+end
+
+Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
+
+function Base.convert(::Type{Pnum}, x::AbstractFloat)
+  isnan(x) && throw(InexactError())
+  _searchvalue(Pnum, x)
 end
 
 Base.(:-)(x::Pnum) = rawpnum(-x.v)
