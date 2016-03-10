@@ -1,14 +1,5 @@
 module Pnums
 
-# 000 -> [0, 0]
-# 001 -> (0, 1)
-# 010 -> [1, 1]
-# 011 -> (1, /0)
-# 100 -> [/0, /0]
-# 101 -> (/0, -1)
-# 110 -> [-1, -1]
-# 111 -> (-1, 0)
-
 typealias NonNaNReal Union{Rational, Irrational, Integer}
 
 # Used for indirection purposes to allow Pnum(x::Integer) to do
@@ -19,6 +10,14 @@ immutable Bitmask{T}
 end
 
 # Pack a Pnum into the 3 trailing bits of a UInt8
+# 000 -> [0, 0]
+# 001 -> (0, 1)
+# 010 -> [1, 1]
+# 011 -> (1, /0)
+# 100 -> [/0, /0]
+# 101 -> (/0, -1)
+# 110 -> [-1, -1]
+# 111 -> (-1, 0)
 immutable Pnum <: Number
   v::UInt8
   Pnum(b::Bitmask{UInt8}) = new(pnmod(b.v))
@@ -165,10 +164,14 @@ function Base.exp(x::Pnum)
     y1, y2 = Pnum(exp(exactvalue(x1))), Pnum(exp(exactvalue(x2)))
   end
 
-  # The only inputs that should return an exact output are 0 and infinity.
-  # Taking a conservative approach of just widening the result in case
-  # floating point exp rounds to one of our exact values. I don't want to
-  # deal with rounding modes for now.
+  # The only inputs that should return an exact output are 0 and
+  # infinity. Taking a conservative approach of just widening the
+  # result in case floating point exp rounds to one of our exact
+  # values. I don't want to deal with rounding modes for now.
+  #
+  # Will run into worse problems (actual incorrectness) if the
+  # underlying float exp is not correctly rounded in a way that
+  # causes us to find its value in the wrong Pnum.
   if isexact(y1)
     if iszero(x1)
       y1 = xexact ? y1 : next(y1)
@@ -204,8 +207,9 @@ end
 
 # A NonEmptyPbound is stored as a packed binary unsigned integer where
 # the upper and lower halves encode Pnums. This is a low-level type.
-# For general purposes, the higher level Pbound type should be used.
-# It is capable of expressing the idea of an empty pbound.
+# For general purposes, the higher level Pbound type should be used,
+# since it is capable of expressing the important idea of an empty
+# Pbound
 immutable NonEmptyPbound <: Number
   v::UInt8
   NonEmptyPbound(b::Bitmask{UInt8}) = new(b.v)
@@ -394,7 +398,7 @@ end
 
 function isstrictlypositive(x::Pbound)
   empty, x1, x2 = unpack(x)
-  empty && return false # Is this the right thing to do?
+  empty && return false
   (pnzero in x || pninf in x) && return false
   return (x1 in pbpos && x2 in pbpos)
 end
@@ -685,16 +689,6 @@ Base.exp(x::Sopn) = mapreduce(exp, union, sopnempty, eachpnum(x))
 Base.promote_rule{T<:Real}(::Type{Pnum}, ::Type{T}) = Pnum
 Base.promote_rule{T<:Real}(::Type{Pbound}, ::Type{T}) = Pbound
 Base.promote_rule(::Type{Pbound}, ::Type{Pnum}) = Pbound
-
-# Arithmetic:
-# Make tables for + and *. They will be 8x8 arrays of Pbounds.
-# All arithmetic on "nothing" produces "nothing"
-# Ways to produce "everything":
-#   * /0 + /0
-#   * 0*/0 or /0*0
-#   * everything*(something except 0 or /0)
-#   * everything + something
-# Multiplying 0 or /0 by something (i.e. not nothing) produces 0 or /0
 
 include("./io.jl")
 
