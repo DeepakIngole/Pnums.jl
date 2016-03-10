@@ -65,15 +65,11 @@ function _searchvalue(::Type{Pnum}, x::Real)
   isinf(x) && return pninf
 
   r = searchsorted(exacts, x)
-  if first(r) == last(r)
-    return rawpnum(UInt8(first(r)) << 1)
-  elseif first(r) > length(exacts)
-    return prev(pninf)
-  elseif last(r) == 0
-    return next(pninf)
-  else
-    return next(rawpnum(UInt8(first(r)) << 1))
-  end
+
+  first(r) == last(r) && return rawpnum(UInt8(first(r)) << 1)
+  first(r) > length(exacts) && return prev(pninf)
+  last(r) == 0 && return next(pninf)
+  return next(rawpnum(UInt8(first(r)) << 1))
 end
 
 Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
