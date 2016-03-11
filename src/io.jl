@@ -57,7 +57,13 @@ function parseinterval(::Type{Pnum}, match)
   return x1
 end
 
-_str(x::Pnum) = isinf(x) ? "/0" : string(num(exactvalue(x)))
+function _str(x::Pnum)
+  isinf(x) && return "/0"
+  v = exactvalue(x)
+  den(v) == 1 && return string(num(v))
+  num(v) == 1 && return string("/", den(v))
+  string(num(v), "/", den(v))
+end
 
 function Base.show(io::IO, x::Pnum)
   if (isexact(x))
