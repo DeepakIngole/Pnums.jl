@@ -35,6 +35,11 @@ pnmod(x::UInt8) = x & pnmask
 const pnzero = rawpnum(zero(storagetypeof(Pnum)))
 const pninf = rawpnum(pnnvalues >> 1)
 
+index(x::Pnum) = x.v
+fromindex(::Type{Pnum}, i) = rawpnum(convert(storagetypeof(Pnum), i))
+fromexactsindex(::Type{Pnum}, i) =
+  rawpnum(convert(storagetypeof(Pnum), i) << 1)
+
 Pnum(x::Real) = convert(Pnum, x)
 
 Base.zero(::Type{Pnum}) = pnzero
@@ -66,10 +71,10 @@ function _searchvalue(::Type{Pnum}, x::Real)
 
   r = searchsorted(exacts, x)
 
-  first(r) == last(r) && return rawpnum(convert(storagetypeof(Pnum), first(r)) << 1)
+  first(r) == last(r) && return fromexactsindex(Pnum, first(r))
   first(r) > length(exacts) && return prev(pninf)
   last(r) == 0 && return next(pninf)
-  return next(rawpnum(convert(storagetypeof(Pnum), first(r)) << 1))
+  return next(fromexactsindex(Pnum, first(r)))
 end
 
 Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
@@ -591,9 +596,6 @@ immutable Sopn <: Number
 end
 
 Sopn(itr) = reduce(union!, Sopn(), itr)
-
-index(x::Pnum) = x.v
-fromindex(::Type{Pnum}, i) = rawpnum(convert(storagetypeof(Pnum), i))
 
 # TODO define symmetrized versions
 function Base.union!(x::Sopn, y::Pnum)
