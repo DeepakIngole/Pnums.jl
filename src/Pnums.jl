@@ -61,21 +61,46 @@ function exactvalue(x::Pnum)
   exacts[((x.v - (pninf.v >> 1)) >> 1) + 1]
 end
 
+
+
 function _searchvalue(::Type{Pnum}, x::Real)
   x < 0 && return -convert(Pnum, -x)
   # TODO, inv(x) will fail for irrationals, and lose precision for
   # Floats. Should search by reciprocals of exact values, but I
   # couldn't figure out how to do that with searchsorted on my first
   # couple tries. Worst case, I'll just write the bisection myself.
-  x < 1 && return inv(convert(Pnum, inv(x)))
+  x == 0 && return pnzero
   isinf(x) && return pninf
 
-  r = searchsorted(exacts, x)
+  # Bisect exacts table to find value.
+  lo = 0
+  hi = length(exacts) + 1
 
-  first(r) == last(r) && return fromexactsindex(Pnum, first(r))
-  first(r) > length(exacts) && return prev(pninf)
-  last(r) == 0 && return next(pninf)
-  return next(fromexactsindex(Pnum, last(r)))
+  if x < 1
+    while true
+      mid = lo + ((hi - lo) >> 1)
+      (mid == lo || mid == hi) && break
+      lo, hi = (inv(exacts[mid]) > x) ? (mid, hi) : (lo, mid)
+    end
+
+    lo > 0 && inv(exacts[lo]) == x && return inv(fromexactsindex(Pnum, lo))
+    hi <= length(exacts) && inv(exacts[hi]) == x && return inv(fromexactsindex(Pnum, hi))
+    lo == 0 && return prev(pnone) # Never happens
+    hi > length(exacts) && return next(pnzero)
+    return inv(next(fromexactsindex(Pnum, lo)))
+  else
+    while true
+      mid = lo + ((hi - lo) >> 1)
+      (mid == lo || mid == hi) && break
+      lo, hi = (exacts[mid] < x) ? (mid, hi) : (lo, mid)
+    end
+
+    lo > 0 && exacts[lo] == x && return fromexactsindex(Pnum, lo)
+    hi <= length(exacts) && exacts[hi] == x && return fromexactsindex(Pnum, hi)
+    lo == 0 && return next(pnone) # Never happens
+    hi > length(exacts) && return prev(pninf)
+    return next(fromexactsindex(Pnum, lo))
+  end
 end
 
 Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
