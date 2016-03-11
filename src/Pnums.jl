@@ -34,11 +34,12 @@ rawpnum(v::UInt8) = Pnum(Bitmask(v))
 pnmod(x::UInt8) = x & pnmask
 const pnzero = rawpnum(zero(storagetypeof(Pnum)))
 const pninf = rawpnum(pnnvalues >> 1)
+const pnone = rawpnum(pnnvalues >> 2)
 
 index(x::Pnum) = x.v
 fromindex(::Type{Pnum}, i) = rawpnum(convert(storagetypeof(Pnum), i))
 fromexactsindex(::Type{Pnum}, i) =
-  rawpnum(convert(storagetypeof(Pnum), i) << 1)
+  rawpnum(pnone.v + (convert(storagetypeof(Pnum), i - 1) << 1))
 
 Pnum(x::Real) = convert(Pnum, x)
 
@@ -74,7 +75,7 @@ function _searchvalue(::Type{Pnum}, x::Real)
   first(r) == last(r) && return fromexactsindex(Pnum, first(r))
   first(r) > length(exacts) && return prev(pninf)
   last(r) == 0 && return next(pninf)
-  return next(fromexactsindex(Pnum, first(r)))
+  return next(fromexactsindex(Pnum, last(r)))
 end
 
 Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
