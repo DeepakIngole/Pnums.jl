@@ -39,30 +39,32 @@ end
 Sopn{T}(::Type{T}) = Sopn{T}(IntSet())
 Sopn(itr) = reduce(union!, Sopn(eltype(itr)), itr)
 
-immutable Pnum <: AbstractPnum
+immutable Pnum3 <: AbstractPnum
   v::UInt8
-  Pnum(b::Bitmask{UInt8}) = new(pnmod(Pnum, b.v))
+  Pnum3(b::Bitmask{UInt8}) = new(pnmod(Pnum3, b.v))
 end
 
-storagetype(::Type{Pnum}) = UInt8
+storagetype(::Type{Pnum3}) = UInt8
 const pn3exacts = [1//1]
-exacts(::Type{Pnum}) = pn3exacts
-pnnvalues(::Type{Pnum}) = convert(storagetype(Pnum), 8)
-pnmask(::Type{Pnum}) = pnnvalues(Pnum) - one(storagetype(Pnum))
-rawpnum(::Type{Pnum}, x::storagetype(Pnum)) = Pnum(Bitmask(x))
-pnmod(::Type{Pnum}, x::storagetype(Pnum)) = x & pnmask(Pnum)
+exacts(::Type{Pnum3}) = pn3exacts
+pnnvalues(::Type{Pnum3}) = convert(storagetype(Pnum3), 8)
+pnmask(::Type{Pnum3}) = pnnvalues(Pnum3) - one(storagetype(Pnum3))
+rawpnum(::Type{Pnum3}, x::storagetype(Pnum3)) = Pnum3(Bitmask(x))
+pnmod(::Type{Pnum3}, x::storagetype(Pnum3)) = x & pnmask(Pnum3)
 
-macro pn_str(str)
-  parse(Pnum, str)
+macro pn3_str(str)
+  parse(Pnum3, str)
 end
 
-pnprefix(x::Pnum) = "pn"
+pnprefix(x::Pnum3) = "pn3"
 
-macro pb_str(str)
-  parse(Pbound{Pnum}, str)
+macro pb3_str(str)
+  parse(Pbound{Pnum3}, str)
 end
 
-pbprefix(x::Pbound{Pnum}) = "pb"
+pbprefix(x::Pbound{Pnum3}) = "pb3"
+
+typealias Pbound3 Pbound{Pnum3}
 
 # Define some useful promotions
 Base.promote_rule{S<:AbstractPnum, T<:Real}(::Type{S}, ::Type{T}) = S

@@ -4,6 +4,6 @@ include("types.jl")
 include("ops.jl")
 include("io.jl")
 
-export Pnum, Pbound, @pn_str, @pb_str, bisect, bisectvalue, eachpnum
+export Pbound, Pnum3, Pbound3, @pn3_str, @pb3_str, bisect, bisectvalue, eachpnum
 
 end
