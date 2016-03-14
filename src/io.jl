@@ -22,12 +22,12 @@ end
 
 function parsefirst(closed, negative, reciprocal, value)
   x = _frompieces(negative, reciprocal, value)
-  return closed ? x : next(x)
+  return closed ? x : nextpnum(x)
 end
 
 function parsesecond(closed, negative, reciprocal, value)
   x = _frompieces(negative, reciprocal, value)
-  return closed ? x : prev(x)
+  return closed ? x : prevpnum(x)
 end
 
 function parseexact(::Type{Pnum}, match)
@@ -69,7 +69,7 @@ function Base.show(io::IO, x::Pnum)
   if (isexact(x))
     print(io, "pn\"", _str(x), "\"")
   else
-    print(io, "pn\"", "(", _str(prev(x)), ", ", _str(next(x)), ")\"")
+    print(io, "pn\"", "(", _str(prevpnum(x)), ", ", _str(nextpnum(x)), ")\"")
   end
 end
 
@@ -123,7 +123,7 @@ function Base.show(io::IO, x::Pbound)
     if isexact(x1)
       print(io, "[", _str(x1))
     else
-      print(io, "(", _str(prev(x1)))
+      print(io, "(", _str(prevpnum(x1)))
     end
 
     print(io, ", ")
@@ -131,7 +131,7 @@ function Base.show(io::IO, x::Pbound)
     if isexact(x2)
       print(io, _str(x2), "]")
     else
-      print(io, _str(next(x2)), ")")
+      print(io, _str(nextpnum(x2)), ")")
     end
 
     print(io, "\"")

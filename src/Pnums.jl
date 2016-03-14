@@ -52,8 +52,8 @@ Base.isinf(x::Pnum) = x == pninf(Pnum)
 isexact(x::Pnum) = trailing_ones(index(x)) == 0 # Check the ubit
 # Next and prev move us anti-clockwise or clockwise around the
 # projective circle
-next(x::Pnum) = rawpnum(Pnum, index(x) + one(index(x)))
-prev(x::Pnum) = rawpnum(Pnum, index(x) - one(index(x)))
+nextpnum(x::Pnum) = rawpnum(Pnum, index(x) + one(index(x)))
+prevpnum(x::Pnum) = rawpnum(Pnum, index(x) - one(index(x)))
 
 isstrictlynegative(x::Pnum) = index(x) > index(pninf(Pnum))
 
@@ -86,9 +86,9 @@ function _searchvalue(::Type{Pnum}, x::Real)
 
     lo > 0 && inv(exacts(Pnum)[lo]) == x && return inv(fromexactsindex(Pnum, lo))
     hi <= length(exacts(Pnum)) && inv(exacts(Pnum)[hi]) == x && return inv(fromexactsindex(Pnum, hi))
-    lo == 0 && return prev(one(Pnum)) # Never happens
-    hi > length(exacts(Pnum)) && return next(zero(Pnum))
-    return inv(next(fromexactsindex(Pnum, lo)))
+    lo == 0 && return prevpnum(one(Pnum)) # Never happens
+    hi > length(exacts(Pnum)) && return nextpnum(zero(Pnum))
+    return inv(nextpnum(fromexactsindex(Pnum, lo)))
   else
     while true
       mid = lo + ((hi - lo) >> 1)
@@ -98,9 +98,9 @@ function _searchvalue(::Type{Pnum}, x::Real)
 
     lo > 0 && exacts(Pnum)[lo] == x && return fromexactsindex(Pnum, lo)
     hi <= length(exacts(Pnum)) && exacts(Pnum)[hi] == x && return fromexactsindex(Pnum, hi)
-    lo == 0 && return next(one(Pnum)) # Never happens
-    hi > length(exacts(Pnum)) && return prev(pninf(Pnum))
-    return next(fromexactsindex(Pnum, lo))
+    lo == 0 && return nextpnum(one(Pnum)) # Never happens
+    hi > length(exacts(Pnum)) && return prevpnum(pninf(Pnum))
+    return nextpnum(fromexactsindex(Pnum, lo))
   end
 end
 
@@ -124,14 +124,14 @@ function slowplus(x::Pnum, y::Pnum)
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
 
-  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
-  y1, y2 = yexact ? (y, y) : (prev(y), next(y))
+  x1, x2 = xexact ? (x, x) : (prevpnum(x), nextpnum(x))
+  y1, y2 = yexact ? (y, y) : (prevpnum(y), nextpnum(y))
 
   z1 = _exactplus(x1, y1)
   z2 = _exactplus(x2, y2)
 
-  z1 = !bothexact && isexact(z1) ? next(z1) : z1
-  z2 = !bothexact && isexact(z2) ? prev(z2) : z2
+  z1 = !bothexact && isexact(z1) ? nextpnum(z1) : z1
+  z2 = !bothexact && isexact(z2) ? prevpnum(z2) : z2
 
   Pbound(z1, z2)
 end
@@ -150,8 +150,8 @@ function slowtimes(x::Pnum, y::Pnum)
   xexact, yexact = isexact(x), isexact(y)
   bothexact = xexact && yexact
 
-  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
-  y1, y2 = yexact ? (y, y) : (prev(y), next(y))
+  x1, x2 = xexact ? (x, x) : (prevpnum(x), nextpnum(x))
+  y1, y2 = yexact ? (y, y) : (prevpnum(y), nextpnum(y))
 
   if (isstrictlynegative(y))
     x1, x2 = x2, x1
@@ -164,8 +164,8 @@ function slowtimes(x::Pnum, y::Pnum)
   z1 = _exacttimes(x1, y1)
   z2 = _exacttimes(x2, y2)
 
-  z1 = !bothexact && isexact(z1) ? next(z1) : z1
-  z2 = !bothexact && isexact(z2) ? prev(z2) : z2
+  z1 = !bothexact && isexact(z1) ? nextpnum(z1) : z1
+  z2 = !bothexact && isexact(z2) ? prevpnum(z2) : z2
 
   Pbound(z1, z2)
 end
@@ -182,7 +182,7 @@ function Base.exp(x::Pnum)
   isinf(x) && return Pbound(zero(Pnum), pninf(Pnum))
   xexact = isexact(x)
 
-  x1, x2 = xexact ? (x, x) : (prev(x), next(x))
+  x1, x2 = xexact ? (x, x) : (prevpnum(x), nextpnum(x))
   if xexact
     y1 = y2 = Pnum(exp(exactvalue(x1)))
   else
@@ -199,26 +199,26 @@ function Base.exp(x::Pnum)
   # causes us to find its value in the wrong Pnum.
   if isexact(y1)
     if iszero(x1)
-      y1 = xexact ? y1 : next(y1)
+      y1 = xexact ? y1 : nextpnum(y1)
     elseif isinf(x1)
-      y1 = xexact ? y1 : next(y1)
+      y1 = xexact ? y1 : nextpnum(y1)
     else
-      y1 = prev(y1)
+      y1 = prevpnum(y1)
     end
   end
 
   if isexact(y2)
     if iszero(x2)
-      y2 = xexact ? y2 : prev(y2)
+      y2 = xexact ? y2 : prevpnum(y2)
     elseif isinf(x2)
-      y2 = xexact ? y2 : prev(y2)
+      y2 = xexact ? y2 : prevpnum(y2)
     else
-      y2 = next(y2)
+      y2 = nextpnum(y2)
     end
   end
 
-  isinf(x1) && return Pbound(next(zero(Pnum)), y2)
-  isinf(x2) && return Pbound(y1, prev(pninf(Pnum)))
+  isinf(x1) && return Pbound(nextpnum(zero(Pnum)), y2)
+  isinf(x2) && return Pbound(y1, prevpnum(pninf(Pnum)))
 
   Pbound(y1, y2)
 end
@@ -231,7 +231,7 @@ function bisect(x::Pnum, y::Pnum)
   rawpnum(Pnum, index(x) + (indexlength(x, y) >> 1))
 end
 
-iseverything(x::Pnum, y::Pnum) = x == next(y)
+iseverything(x::Pnum, y::Pnum) = x == nextpnum(y)
 
 # A NonEmptyPbound is stored as a packed binary unsigned integer where
 # the upper and lower halves encode Pnums. This is a low-level type.
@@ -243,7 +243,7 @@ immutable NonEmptyPbound <: Number
   y::Pnum
   # Always store everything in the canonical way
   function NonEmptyPbound(x::Pnum, y::Pnum)
-    iseverything(x, y) ? new(next(pninf(Pnum)), pninf(Pnum)) : new(x, y)
+    iseverything(x, y) ? new(nextpnum(pninf(Pnum)), pninf(Pnum)) : new(x, y)
   end
 end
 
@@ -266,12 +266,12 @@ Pbound(x::Pnum) = convert(Pbound, x)
 Base.zero(::Type{Pbound}) = Pbound(zero(Pnum))
 Base.one(::Type{Pbound}) = Pbound(one(Pnum))
 pbempty(::Type{Pbound}) = Pbound(true, NonEmptyPbound(zero(Pnum), zero(Pnum)))
-pbeverything(::Type{Pbound}) = Pbound(next(pninf(Pnum)), pninf(Pnum))
+pbeverything(::Type{Pbound}) = Pbound(nextpnum(pninf(Pnum)), pninf(Pnum))
 pbinf(::Type{Pbound}) = Pbound(pninf(Pnum))
-pbfinite(::Type{Pbound}) = Pbound(next(pninf(Pnum)), prev(pninf(Pnum)))
-pbnonzero(::Type{Pbound}) = Pbound(next(zero(Pnum)), prev(zero(Pnum)))
-pbneg(::Type{Pbound}) = Pbound(next(pninf(Pnum)), prev(zero(Pnum)))
-pbpos(::Type{Pbound}) = Pbound(next(zero(Pnum)), prev(pninf(Pnum)))
+pbfinite(::Type{Pbound}) = Pbound(nextpnum(pninf(Pnum)), prevpnum(pninf(Pnum)))
+pbnonzero(::Type{Pbound}) = Pbound(nextpnum(zero(Pnum)), prevpnum(zero(Pnum)))
+pbneg(::Type{Pbound}) = Pbound(nextpnum(pninf(Pnum)), prevpnum(zero(Pnum)))
+pbpos(::Type{Pbound}) = Pbound(nextpnum(zero(Pnum)), prevpnum(pninf(Pnum)))
 
 function Base.convert(::Type{Pbound}, x::Real)
   isnan(x) && return pbempty(Pbound)
@@ -286,7 +286,7 @@ end
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  x1 == next(x2)
+  iseverything(x1, x2)
 end
 
 function isexact(x::Pbound)
@@ -317,7 +317,7 @@ function Base.complement(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return pbeverything(Pbound)
   iseverything(x) && return pbempty(Pbound)
-  Pbound(next(x2), prev(x1))
+  Pbound(nextpnum(x2), prevpnum(x1))
 end
 
 function Base.in(y::Pnum, x::Pbound)
@@ -529,7 +529,7 @@ function bisect(x::Pbound)
   x1 == x2 && return (Pbound(x1), pbempty(Pbound))
   xc = bisect(x1, x2)
   (x1 == xc || xc == x2) && return (Pbound(x1), Pbound(x2))
-  return (Pbound(x1, xc), Pbound(next(xc), x2))
+  return (Pbound(x1, xc), Pbound(nextpnum(xc), x2))
 end
 
 function mergelast!(accum::Vector{Pbound}, x::Pbound)
@@ -545,7 +545,7 @@ function mergelast!(accum::Vector{Pbound}, x::Pbound)
     push!(accum, x)
     return
   end
-  if next(y2) in x
+  if nextpnum(y2) in x
     # Would be safer to do shortestcover
     accum[end] = y1 in x ? pbeverything(Pbound) : outer(y, x)
     return
@@ -600,7 +600,7 @@ function Base.start(x::PboundIterator)
   (x1, 1)
 end
 
-Base.next(x::PboundIterator, t) = (first(t), (next(first(t)), last(t) + 1))
+Base.next(x::PboundIterator, t) = (first(t), (nextpnum(first(t)), last(t) + 1))
 
 function Base.done(x::PboundIterator, t)
   last(t) > x.len
@@ -645,7 +645,7 @@ function Base.start(x::SopnIterator)
 end
 
 function Base.next(x::SopnIterator, state)
-  id, state = Base.next(x.s.s, state)
+  id, state = next(x.s.s, state)
   (fromindex(Pnum, id - 1), state)
 end
 

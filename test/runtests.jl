@@ -51,24 +51,24 @@ using Base.Test
 @test Pnums.isexact(pn"(-1, 0)") == false
 
 # next
-@test Pnums.next(pn"0") == pn"(0, 1)"
-@test Pnums.next(pn"(0, 1)") == pn"1"
-@test Pnums.next(pn"1") == pn"(1, /0)"
-@test Pnums.next(pn"(1, /0)") == pn"/0"
-@test Pnums.next(pn"/0") == pn"(/0, -1)"
-@test Pnums.next(pn"(/0, -1)") == pn"-1"
-@test Pnums.next(pn"-1") == pn"(-1, 0)"
-@test Pnums.next(pn"(-1, 0)") == pn"0"
+@test Pnums.nextpnum(pn"0") == pn"(0, 1)"
+@test Pnums.nextpnum(pn"(0, 1)") == pn"1"
+@test Pnums.nextpnum(pn"1") == pn"(1, /0)"
+@test Pnums.nextpnum(pn"(1, /0)") == pn"/0"
+@test Pnums.nextpnum(pn"/0") == pn"(/0, -1)"
+@test Pnums.nextpnum(pn"(/0, -1)") == pn"-1"
+@test Pnums.nextpnum(pn"-1") == pn"(-1, 0)"
+@test Pnums.nextpnum(pn"(-1, 0)") == pn"0"
 
 # prev
-@test Pnums.prev(pn"0") == pn"(-1, 0)"
-@test Pnums.prev(pn"(0, 1)") == pn"0"
-@test Pnums.prev(pn"1") == pn"(0, 1)"
-@test Pnums.prev(pn"(1, /0)") == pn"1"
-@test Pnums.prev(pn"/0") == pn"(1, /0)"
-@test Pnums.prev(pn"(/0, -1)") == pn"/0"
-@test Pnums.prev(pn"-1") == pn"(/0, -1)"
-@test Pnums.prev(pn"(-1, 0)") == pn"-1"
+@test Pnums.prevpnum(pn"0") == pn"(-1, 0)"
+@test Pnums.prevpnum(pn"(0, 1)") == pn"0"
+@test Pnums.prevpnum(pn"1") == pn"(0, 1)"
+@test Pnums.prevpnum(pn"(1, /0)") == pn"1"
+@test Pnums.prevpnum(pn"/0") == pn"(1, /0)"
+@test Pnums.prevpnum(pn"(/0, -1)") == pn"/0"
+@test Pnums.prevpnum(pn"-1") == pn"(/0, -1)"
+@test Pnums.prevpnum(pn"(-1, 0)") == pn"-1"
 
 for x1 in eachpnum(pb"everything"), x2 in eachpnum(pb"everything")
   x = Pbound(x1, x2)
