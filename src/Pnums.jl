@@ -34,29 +34,34 @@ Base.zero(::Type{Pnum}) = rawpnum(Pnum, zero(storagetype(Pnum)))
 Base.one(::Type{Pnum}) = rawpnum(Pnum, pnnvalues(Pnum) >> 2)
 pninf(::Type{Pnum}) = rawpnum(Pnum, pnnvalues(Pnum) >> 1)
 
-
 index(x::Pnum) = x.v
 fromindex(::Type{Pnum}, i) = rawpnum(Pnum, convert(storagetype(Pnum), i))
 fromexactsindex(::Type{Pnum}, i) =
-  rawpnum(Pnum, one(Pnum).v + (convert(storagetype(Pnum), i - 1) << 1))
+  rawpnum(Pnum, index(one(Pnum)) + (convert(storagetype(Pnum), i - 1) << 1))
 
 Pnum(x::Real) = convert(Pnum, x)
+Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
 
-iszero(x::Pnum) = x.v == zero(Pnum).v
-Base.isinf(x::Pnum) = x.v == pninf(Pnum).v
-isexact(x::Pnum) = trailing_ones(x.v) == 0 # Check the ubit
+function Base.convert(::Type{Pnum}, x::AbstractFloat)
+  isnan(x) && throw(InexactError())
+  _searchvalue(Pnum, x)
+end
+
+iszero(x::Pnum) = x == zero(Pnum)
+Base.isinf(x::Pnum) = x == pninf(Pnum)
+isexact(x::Pnum) = trailing_ones(index(x)) == 0 # Check the ubit
 # Next and prev move us anti-clockwise or clockwise around the
 # projective circle
-next(x::Pnum) = rawpnum(Pnum, x.v + one(x.v))
-prev(x::Pnum) = rawpnum(Pnum, x.v - one(x.v))
+next(x::Pnum) = rawpnum(Pnum, index(x) + one(index(x)))
+prev(x::Pnum) = rawpnum(Pnum, index(x) - one(index(x)))
 
-isstrictlynegative(x::Pnum) = x.v > pninf(Pnum).v
+isstrictlynegative(x::Pnum) = index(x) > index(pninf(Pnum))
 
 function exactvalue(x::Pnum)
-  x.v > pninf(Pnum).v && return -exactvalue(-x)
-  x.v < (pninf(Pnum).v >> 1) && return inv(exactvalue(inv(x)))
+  isstrictlynegative(x) && return -exactvalue(-x)
+  index(x) < index(one(Pnum)) && return inv(exactvalue(inv(x)))
   isinf(x) && return 1//0
-  exacts(Pnum)[((x.v - (pninf(Pnum).v >> 1)) >> 1) + 1]
+  exacts(Pnum)[((index(x) - index(one(Pnum))) >> 1) + 1]
 end
 
 function _searchvalue(::Type{Pnum}, x::Real)
@@ -99,16 +104,9 @@ function _searchvalue(::Type{Pnum}, x::Real)
   end
 end
 
-Base.convert(::Type{Pnum}, x::Real) = _searchvalue(Pnum, x)
-
-function Base.convert(::Type{Pnum}, x::AbstractFloat)
-  isnan(x) && throw(InexactError())
-  _searchvalue(Pnum, x)
-end
-
-Base.(:-)(x::Pnum) = rawpnum(Pnum, -x.v)
-# Negate and rotate 180 degrees
-Base.inv(x::Pnum) = rawpnum(Pnum, -x.v - pninf(Pnum).v)
+Base.(:-)(x::Pnum) = rawpnum(Pnum, -index(x))
+# Rotate 180 degrees and negate
+Base.inv(x::Pnum) = rawpnum(Pnum, -(index(x) + index(pninf(Pnum))))
 
 # Calling these slowplus and slowtimes because, in a final
 # implementation, they will probably be used to generate lookup tables,
@@ -225,11 +223,12 @@ function Base.exp(x::Pnum)
   Pbound(y1, y2)
 end
 
+indexlength(x::Pnum, y::Pnum) = pnmod(Pnum, index(y) - index(x))
+
 # Index midpoint between two Pnums. Note that this is asymmetric in
 # the arguments: reversing them will return a point 180 degrees away.
 function bisect(x::Pnum, y::Pnum)
-  inc = pnmod(Pnum, y.v - x.v) >> one(x.v)
-  rawpnum(Pnum, x.v + inc)
+  rawpnum(Pnum, index(x) + (indexlength(x, y) >> 1))
 end
 
 iseverything(x::Pnum, y::Pnum) = x == next(y)
@@ -255,8 +254,8 @@ immutable Pbound <: Number
   v::NonEmptyPbound
 end
 
-unpack(x::Pbound) = (isempty(x), unpack(x.v)...)
 Base.isempty(x::Pbound) = x.isempty
+unpack(x::Pbound) = (isempty(x), unpack(x.v)...)
 
 Pbound(x::Pnum, y::Pnum) = Pbound(false, NonEmptyPbound(x, y))
 Base.convert(::Type{Pbound}, x::Pnum) = Pbound(x, x)
@@ -324,7 +323,7 @@ end
 function Base.in(y::Pnum, x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return false
-  y.v - x1.v <= x2.v - x1.v
+  indexlength(x1, y) <= indexlength(x1, x2)
 end
 
 function Base.intersect(x::Pbound, y::Pbound)
@@ -348,12 +347,6 @@ function Base.intersect(x::Pbound, y::Pbound)
   return (pbempty(Pbound), pbempty(Pbound))
 end
 
-function indexlength(x::Pbound)
-  xempty, x1, x2 = unpack(x)
-  xempty && return zero(x1.v)
-  pnmod(Pnum, x2.v - x1.v) + one(x1.v)
-end
-
 function shortestcover(x::Pbound, y::Pbound)
   xempty, x1, x2 = unpack(x)
   yempty, y1, y2 = unpack(y)
@@ -375,7 +368,7 @@ function shortestcover(x::Pbound, y::Pbound)
   x1 in y && return z2
   x2 in y && return z1
   # bounds are disjoint, return "shortest" covering bound
-  return indexlength(z1) < indexlength(z2) ? z1 : z2
+  return length(eachpnum(z1)) < length(eachpnum(z2)) ? z1 : z2
 end
 
 # Make shortestcover variadic
@@ -596,7 +589,11 @@ immutable PboundIterator
   len::Int
 end
 
-eachpnum(x::Pbound) = PboundIterator(x, indexlength(x))
+function eachpnum(x::Pbound)
+  xempty, x1, x2 = unpack(x)
+  xempty && return PboundIterator(x, zero(index(x1)))
+  PboundIterator(x, indexlength(x1, x2) + one(index(x1)))
+end
 
 function Base.start(x::PboundIterator)
   xempty, x1, x2 = unpack(x.pb)
@@ -610,6 +607,7 @@ function Base.done(x::PboundIterator, t)
 end
 
 Base.eltype(x::PboundIterator) = Pnum
+Base.length(x::PboundIterator) = x.len
 
 immutable Sopn <: Number
   s::IntSet
