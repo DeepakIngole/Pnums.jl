@@ -11,14 +11,14 @@ using Base.Test
 @test Pnum(-10) == pn"(/0, -1)"
 @test Pnum(-0.5) ==  pn"(-1, 0)"
 
-@test Pbound(0) == pb"0"
-@test Pbound(1) == pb"1"
-@test Pbound(Inf) == pb"/0"
-@test Pbound(-1) == pb"-1"
-@test Pbound(0.5) == pb"(0, 1)"
-@test Pbound(10) == pb"(1, /0)"
-@test Pbound(-10) == pb"(/0, -1)"
-@test Pbound(-0.5) ==  pb"(-1, 0)"
+@test Pbound{Pnum}(0) == pb"0"
+@test Pbound{Pnum}(1) == pb"1"
+@test Pbound{Pnum}(Inf) == pb"/0"
+@test Pbound{Pnum}(-1) == pb"-1"
+@test Pbound{Pnum}(0.5) == pb"(0, 1)"
+@test Pbound{Pnum}(10) == pb"(1, /0)"
+@test Pbound{Pnum}(-10) == pb"(/0, -1)"
+@test Pbound{Pnum}(-0.5) ==  pb"(-1, 0)"
 
 # Negating Pnums
 @test -pn"0" == pn"0"

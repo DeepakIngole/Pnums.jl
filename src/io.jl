@@ -1,8 +1,8 @@
-function Base.parse(::Type{Pnum}, str)
+function Base.parse{T<:AbstractPnum}(::Type{T}, str)
   m = match(r"^(-?)(/?)(\d)$", str)
-  m != nothing && return parseexact(Pnum, m)
+  m != nothing && return parseexact(T, m)
   m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
-  m != nothing && return parseinterval(Pnum, m)
+  m != nothing && return parseinterval(T, m)
   throw(ArgumentError("Improperly formatted Pnum"))
 end
 
@@ -10,42 +10,45 @@ macro pn_str(str)
   parse(Pnum, str)
 end
 
-function _frompieces(negative, reciprocal, value)
-  reciprocal && value == 0 && return pninf(Pnum)
+function _frompieces{T<:AbstractPnum}(::Type{T}, negative, reciprocal, value)
+  reciprocal && value == 0 && return pninf(T)
 
   value = negative ? -value : value
   value = reciprocal ? 1//value : value
-  out = Pnum(value)
-  out == value || throw(InexactError())
+  out = T(value)
+  (out == value) || throw(InexactError())
   return out
 end
 
-function parsefirst(closed, negative, reciprocal, value)
-  x = _frompieces(negative, reciprocal, value)
+function parsefirst{T}(::Type{T}, closed, negative, reciprocal, value)
+  x = _frompieces(T, negative, reciprocal, value)
   return closed ? x : nextpnum(x)
 end
 
-function parsesecond(closed, negative, reciprocal, value)
-  x = _frompieces(negative, reciprocal, value)
+function parsesecond{T}(::Type{T}, closed, negative, reciprocal, value)
+  x = _frompieces(T, negative, reciprocal, value)
   return closed ? x : prevpnum(x)
 end
 
-function parseexact(::Type{Pnum}, match)
+function parseexact{T<:AbstractPnum}(::Type{T}, match)
  return _frompieces(
+    T,
     match.captures[1] == "-",
     match.captures[2] == "/",
     parse(Int, match.captures[3])
   )
 end
 
-function parseinterval(::Type{Pnum}, match)
+function parseinterval{T<:AbstractPnum}(::Type{T}, match)
   x1 = parsefirst(
+    T,
     match.captures[1] == "[",
     match.captures[2] == "-",
     match.captures[3] == "/",
     parse(Int, match.captures[4])
   )
   x2 = parsesecond(
+    T,
     match.captures[8] == "]",
     match.captures[5] == "-",
     match.captures[6] == "/",
@@ -57,7 +60,7 @@ function parseinterval(::Type{Pnum}, match)
   return x1
 end
 
-function _str(x::Pnum)
+function _str(x::AbstractPnum)
   isinf(x) && return "/0"
   v = exactvalue(x)
   den(v) == 1 && return string(num(v))
@@ -73,33 +76,35 @@ function Base.show(io::IO, x::Pnum)
   end
 end
 
-function Base.parse(::Type{Pbound}, str)
-  str == "empty" && return pbempty(Pbound)
-  str == "everything" && return pbeverything(Pbound)
+function Base.parse{T<:Pbound}(::Type{T}, str)
+  str == "empty" && return pbempty(T)
+  str == "everything" && return pbeverything(T)
   m = match(r"^(-?)(/?)(\d)$", str)
-  m != nothing && return parseexact(Pbound, m)
+  m != nothing && return parseexact(T, m)
   m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
-  m != nothing && return parseinterval(Pbound, m)
+  m != nothing && return parseinterval(T, m)
   throw(ArgumentError("Improperly formatted Pbound"))
 end
 
 macro pb_str(str)
-  parse(Pbound, str)
+  parse(Pbound{Pnum}, str)
 end
 
-function parseexact(::Type{Pbound}, match)
-  x = parseexact(Pnum, match)
+function parseexact{T<:AbstractPnum}(::Type{Pbound{T}}, match)
+  x = parseexact(T, match)
   return Pbound(x, x)
 end
 
-function parseinterval(::Type{Pbound}, match)
+function parseinterval{T<:AbstractPnum}(::Type{Pbound{T}}, match)
   x1 = parsefirst(
+    T,
     match.captures[1] == "[",
     match.captures[2] == "-",
     match.captures[3] == "/",
     parse(Int, match.captures[4])
   )
   x2 = parsesecond(
+    T,
     match.captures[8] == "]",
     match.captures[5] == "-",
     match.captures[6] == "/",
