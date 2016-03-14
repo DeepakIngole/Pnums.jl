@@ -11,7 +11,7 @@ macro pn_str(str)
 end
 
 function _frompieces(negative, reciprocal, value)
-  reciprocal && value == 0 && return pninf
+  reciprocal && value == 0 && return pninf(Pnum)
 
   value = negative ? -value : value
   value = reciprocal ? 1//value : value
@@ -74,8 +74,8 @@ function Base.show(io::IO, x::Pnum)
 end
 
 function Base.parse(::Type{Pbound}, str)
-  str == "empty" && return pbempty
-  str == "everything" && return pbeverything
+  str == "empty" && return pbempty(Pbound)
+  str == "everything" && return pbeverything(Pbound)
   m = match(r"^(-?)(/?)(\d)$", str)
   m != nothing && return parseexact(Pbound, m)
   m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
