@@ -239,6 +239,11 @@ end
   pb8"(5/4, 3/2)"
 ]
 
+@test bisectvalue(x->x*x, pn16"2") == [
+  pb16"(-363/256, -181/128)",
+  pb16"(181/128, 363/256)"
+]
+
 # This one is interesting because it shows how the dependency problem
 # can lead to imprecise solutions and "false positive" solutions.
 #

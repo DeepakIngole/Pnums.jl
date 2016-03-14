@@ -123,6 +123,34 @@ pbprefix(x::Pbound{Pnum8}) = "pb8"
 
 typealias Pbound8 Pbound{Pnum8}
 
+immutable Pnum16 <: AbstractPnum
+  v::UInt16
+  Pnum16(b::Bitmask{UInt16}) = new(pnmod(Pnum16, b.v))
+end
+
+storagetype(::Type{Pnum16}) = UInt16
+const pn16exacts = vec([Rational(2^n*(256+m), 256) for m in 0:255, n in 0:31])
+const pn16nvalues = 8*length(pn16exacts)
+exacts(::Type{Pnum16}) = pn16exacts
+pnnvalues(::Type{Pnum16}) = pn16nvalues
+pnmask(::Type{Pnum16}) = convert(storagetype(Pnum16), pnnvalues(Pnum16) - 1)
+rawpnum(::Type{Pnum16}, x::storagetype(Pnum16)) = Pnum16(Bitmask(x))
+pnmod(::Type{Pnum16}, x::storagetype(Pnum16)) = x & pnmask(Pnum16)
+
+macro pn16_str(str)
+  parse(Pnum16, str)
+end
+
+pnprefix(x::Pnum16) = "pn16"
+
+macro pb16_str(str)
+  parse(Pbound{Pnum16}, str)
+end
+
+pbprefix(x::Pbound{Pnum16}) = "pb16"
+
+typealias Pbound16 Pbound{Pnum16}
+
 # Define some useful promotions
 Base.promote_rule{S<:AbstractPnum, T<:Real}(::Type{S}, ::Type{T}) = S
 Base.promote_rule{S<:Pbound, T<:Real}(::Type{S}, ::Type{T}) = S

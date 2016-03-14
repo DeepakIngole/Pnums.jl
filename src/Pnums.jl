@@ -18,6 +18,10 @@ export
   Pbound8,
   @pn8_str,
   @pb8_str,
+  Pnum16,
+  Pbound16,
+  @pn16_str,
+  @pb16_str,
   bisect,
   bisectvalue,
   eachpnum
