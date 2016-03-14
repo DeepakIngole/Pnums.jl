@@ -1,7 +1,11 @@
-function Base.convert{T<:AbstractPnum}(::Type{T}, x::AbstractFloat)
-  isnan(x) && throw(InexactError())
-  _searchvalue(T, x)
-end
+Base.zero{T<:AbstractPnum}(::Type{T}) = rawpnum(T, zero(storagetype(T)))
+Base.one{T<:AbstractPnum}(::Type{T}) = rawpnum(T, pnnvalues(T) >> 2)
+pninf{T<:AbstractPnum}(::Type{T}) = rawpnum(T, pnnvalues(T) >> 1)
+
+index(x::AbstractPnum) = x.v
+fromindex{T<:AbstractPnum}(::Type{T}, i) = rawpnum(T, convert(storagetype(T), i))
+fromexactsindex{T<:AbstractPnum}(::Type{T}, i) =
+  rawpnum(T, index(one(T)) + (convert(storagetype(T), i - 1) << 1))
 
 pninf(x::AbstractPnum) = pninf(typeof(x))
 exacts(x::AbstractPnum) = exacts(typeof(x))
@@ -14,7 +18,7 @@ isexact(x::AbstractPnum) = trailing_ones(index(x)) == 0 # Check the ubit
 nextpnum(x::AbstractPnum) = rawpnum(typeof(x), index(x) + one(index(x)))
 prevpnum(x::AbstractPnum) = rawpnum(typeof(x), index(x) - one(index(x)))
 
-isstrictlynegative(x::AbstractPnum) = index(x) > index(pninf(Pnum))
+isstrictlynegative(x::AbstractPnum) = index(x) > index(pninf(x))
 
 function exactvalue(x::AbstractPnum)
   isstrictlynegative(x) && return -exactvalue(-x)
@@ -63,6 +67,13 @@ function _searchvalue{T<:AbstractPnum}(::Type{T}, x::Real)
     return nextpnum(fromexactsindex(T, lo))
   end
 end
+
+function Base.convert{T<:AbstractPnum}(::Type{T}, x::AbstractFloat)
+  isnan(x) && throw(InexactError())
+  _searchvalue(T, x)
+end
+
+Base.convert{T<:AbstractPnum}(::Type{T}, x::Real) = _searchvalue(T, x)
 
 Base.(:-)(x::AbstractPnum) = rawpnum(typeof(x), -index(x))
 # Rotate 180 degrees and negate
@@ -135,8 +146,8 @@ Base.(:+){T<:AbstractPnum}(x::T, y::T) = slowplus(x, y)
 Base.(:-){T<:AbstractPnum}(x::T, y::T) = x + (-y)
 Base.(:*){T<:AbstractPnum}(x::T, y::T) = slowtimes(x, y)
 Base.(:/){T<:AbstractPnum}(x::T, y::T) = x*inv(y)
-Base.(:(==))(x::Pnum, y::Real) = isexact(x) && exactvalue(x) == y
-Base.(:(==))(x::Real, y::Pnum) = y == x
+Base.(:(==))(x::AbstractPnum, y::Real) = isexact(x) && exactvalue(x) == y
+Base.(:(==))(x::Real, y::AbstractPnum) = y == x
 
 function Base.exp{T<:AbstractPnum}(x::T)
   # TODO exp(pn"/0") = pb"[0, /0]" is a little painful; it should really
@@ -342,14 +353,14 @@ end
 
 function Base.(:+){T<:Pbound}(x::T, y::T)
   (isempty(x) || isempty(y)) && return pbempty(T)
-  (pninf(Pnum) in x && pninf(Pnum) in y) && return pbeverything(T)
+  (pninf(eltype(T)) in x && pninf(eltype(T)) in y) && return pbeverything(T)
 
-  if pninf(Pnum) in x
+  if pninf(eltype(T)) in x
     x1, x2 = intersect(pbfinite(T), x)
     return shortestcover(pbinf(T), finiteplus(x1, y), finiteplus(x2, y))
   end
 
-  if pninf(Pnum) in y
+  if pninf(eltype(T)) in y
     y1, y2 = intersect(pbfinite(T), y)
     return shortestcover(pbinf(T), finiteplus(x, y1), finiteplus(x, y2))
   end
@@ -387,7 +398,7 @@ end
 function finitetimes{T<:Pbound}(x::T, y::T)
   (isempty(x) || isempty(y)) && return pbempty(T)
 
-  if zero(Pnum) in x && zero(Pnum) in y
+  if zero(eltype(T)) in x && zero(eltype(T)) in y
     x1, x2 = intersect(pbnonzero(T), x)
     y1, y2 = intersect(pbnonzero(T), y)
     return shortestcover(
@@ -399,7 +410,7 @@ function finitetimes{T<:Pbound}(x::T, y::T)
     )
   end
 
-  if zero(Pnum) in x
+  if zero(eltype(T)) in x
     x1, x2 = intersect(pbnonzero(T), x)
     return shortestcover(
       zero(T),
@@ -408,7 +419,7 @@ function finitetimes{T<:Pbound}(x::T, y::T)
     )
   end
 
-  if zero(Pnum) in y
+  if zero(eltype(T)) in y
     y1, y2 = intersect(pbnonzero(T), y)
     return shortestcover(
       zero(T),
@@ -422,10 +433,10 @@ end
 
 function Base.(:*){T<:Pbound}(x::T, y::T)
   (isempty(x) || isempty(y)) && return pbempty(T)
-  (pninf(Pnum) in x && zero(Pnum) in y) && return pbeverything(T)
-  (zero(Pnum) in x && pninf(Pnum) in y) && return pbeverything(T)
+  (pninf(eltype(T)) in x && zero(eltype(T)) in y) && return pbeverything(T)
+  (zero(eltype(T)) in x && pninf(eltype(T)) in y) && return pbeverything(T)
 
-  if pninf(Pnum) in x && pninf(Pnum) in y
+  if pninf(eltype(T)) in x && pninf(eltype(T)) in y
     x1, x2 = intersect(pbfinite(T), x)
     y1, y2 = intersect(pbfinite(T), y)
     return shortestcover(
@@ -437,12 +448,12 @@ function Base.(:*){T<:Pbound}(x::T, y::T)
     )
   end
 
-  if pninf(Pnum) in x
+  if pninf(eltype(T)) in x
     x1, x2 = intersect(pbfinite(T), x)
     return shortestcover(pbinf(T), finitetimes(x1, y), finitetimes(x2, y))
   end
 
-  if pninf(Pnum) in y
+  if pninf(eltype(T)) in y
     y1, y2 = intersect(pbfinite(T), y)
     return shortestcover(pbinf(T), finitetimes(x, y1), finitetimes(x, y2))
   end

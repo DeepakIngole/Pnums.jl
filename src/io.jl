@@ -6,10 +6,6 @@ function Base.parse{T<:AbstractPnum}(::Type{T}, str)
   throw(ArgumentError("Improperly formatted Pnum"))
 end
 
-macro pn_str(str)
-  parse(Pnum, str)
-end
-
 function _frompieces{T<:AbstractPnum}(::Type{T}, negative, reciprocal, value)
   reciprocal && value == 0 && return pninf(T)
 
@@ -68,11 +64,11 @@ function _str(x::AbstractPnum)
   string(num(v), "/", den(v))
 end
 
-function Base.show(io::IO, x::Pnum)
+function Base.show(io::IO, x::AbstractPnum)
   if (isexact(x))
-    print(io, "pn\"", _str(x), "\"")
+    print(io, pnprefix(x), "\"", _str(x), "\"")
   else
-    print(io, "pn\"", "(", _str(prevpnum(x)), ", ", _str(nextpnum(x)), ")\"")
+    print(io, pnprefix(x), "\"", "(", _str(prevpnum(x)), ", ", _str(nextpnum(x)), ")\"")
   end
 end
 
@@ -84,10 +80,6 @@ function Base.parse{T<:Pbound}(::Type{T}, str)
   m = match(r"^([\[\(])\s*(-?)(/?)(\d)\s*,\s*(-?)(/?)(\d)\s*([\]\)])$", str)
   m != nothing && return parseinterval(T, m)
   throw(ArgumentError("Improperly formatted Pbound"))
-end
-
-macro pb_str(str)
-  parse(Pbound{Pnum}, str)
 end
 
 function parseexact{T<:AbstractPnum}(::Type{Pbound{T}}, match)
@@ -117,13 +109,13 @@ function Base.show(io::IO, x::Pbound)
   empty, x1, x2 = unpack(x)
 
   if empty
-    print(io, "pb\"empty\"")
+    print(io, pbprefix(x), "\"empty\"")
   elseif iseverything(x)
-    print(io, "pb\"everything\"")
+    print(io, pbprefix(x), "\"everything\"")
   elseif isexact(x)
-    print(io, "pb\"", _str(x1), "\"")
+    print(io, pbprefix(x), "\"", _str(x1), "\"")
   else
-    print(io, "pb\"")
+    print(io, pbprefix(x), "\"")
 
     if isexact(x1)
       print(io, "[", _str(x1))
