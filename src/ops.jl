@@ -1,6 +1,12 @@
 Base.zero{T<:AbstractPnum}(::Type{T}) = rawpnum(T, zero(storagetype(T)))
-Base.one{T<:AbstractPnum}(::Type{T}) = rawpnum(T, pnnvalues(T) >> 2)
-pninf{T<:AbstractPnum}(::Type{T}) = rawpnum(T, pnnvalues(T) >> 1)
+Base.one{T<:AbstractPnum}(::Type{T}) = rawpnum(
+  T,
+  convert(storagetype(T), pnnvalues(T) >> 2)
+)
+pninf{T<:AbstractPnum}(::Type{T}) = rawpnum(
+  T,
+  convert(storagetype(T), pnnvalues(T) >> 1)
+)
 
 index(x::AbstractPnum) = x.v
 fromindex{T<:AbstractPnum}(::Type{T}, i) = rawpnum(T, convert(storagetype(T), i))
@@ -555,12 +561,10 @@ immutable PboundIterator{T}
   len::Int
 end
 
-PboundIterator(pb::Pbound, len::Integer) = PboundIterator(pb, Int(len))
-
 function eachpnum(x::Pbound)
   xempty, x1, x2 = unpack(x)
-  xempty && return PboundIterator(x, zero(index(x1)))
-  PboundIterator(x, indexlength(x1, x2) + one(index(x1)))
+  xempty && return PboundIterator(x, 0)
+  PboundIterator(x, indexlength(x1, x2) + 1)
 end
 
 function Base.start(x::PboundIterator)

@@ -185,8 +185,15 @@ end
 @test pn3"(/0, -1)" / pn3"(-1, 0)" == pb3"(1, /0)"
 @test pn3"(-1, 0)" / pn3"(-1, 0)" == pb3"(0, /0)"
 
-const allpbounds = let accum = Pbound[pb3"empty"]
+const allpb3 = let accum = Pbound[pb3"empty"]
   for x in eachpnum(pb3"everything"), y in eachpnum(pb3"everything")
+    push!(accum, Pbound(x, y))
+  end
+  accum
+end
+
+const allpb4 = let accum = Pbound[pb4"empty"]
+  for x in eachpnum(pb4"everything"), y in eachpnum(pb4"everything")
     push!(accum, Pbound(x, y))
   end
   accum
@@ -194,21 +201,13 @@ end
 
 # Test arithmetic over bounds by checking that it is consistent with
 # Sopn arithmetic.
-for x1 in allpbounds, x2 in allpbounds
+for x1 in allpb3, x2 in allpb3
   @test Pnums.Sopn(x1 + x2) == Pnums.Sopn(x1) + Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 - x2) == Pnums.Sopn(x1) - Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 * x2) == Pnums.Sopn(x1) * Pnums.Sopn(x2)
   @test Pnums.Sopn(x1 / x2) == Pnums.Sopn(x1) / Pnums.Sopn(x2)
   @test (x1 == x2) == (Pnums.Sopn(x1) == Pnums.Sopn(x2))
 end
-
-@test bisectvalue(x->x*(x-1)*(x+1), pn3"0") == [ pb3"-1", pb3"0", pb3"1" ]
-@test bisectvalue(x->x*x + 1, pn3"0") == Pbound[]
-@test bisectvalue(x->x, pn3"/0") == [ pb3"/0" ]
-@test bisectvalue(x->(1+x)/(1-x), pn3"0") == [ pb3"-1", pb3"/0" ]
-@test bisectvalue(x->(1+x)/(1-x), pn3"/0") == [ pb3"1", pb3"/0" ]
-@test bisectvalue(x->x*x, Pnum3(2)) == [ pb3"(/0, -1)", pb3"(1, /0)" ]
-@test bisectvalue(x->pb3"(-1, 1)", pn3"0") == [ pb3"everything" ]
 
 @test exp(pn3"0") == pb3"1"
 @test exp(pn3"(0, 1)") == pb3"(1, /0)"
@@ -219,6 +218,38 @@ end
 @test exp(pn3"-1") == pb3"(0, 1)"
 @test exp(pn3"(-1, 0)") == pb3"(0, 1)"
 
-for x1 in allpbounds
-  @test Pnums.Sopn(exp(x1)) == exp(Pnums.Sopn(x1))
+for x in allpb3
+  @test Pnums.Sopn(exp(x)) == exp(Pnums.Sopn(x))
 end
+
+for x in allpb4
+  @test Pnums.Sopn(exp(x)) == exp(Pnums.Sopn(x))
+end
+
+@test bisectvalue(x->x*(x-1)*(x+1), pn3"0") == [ pb3"-1", pb3"0", pb3"1" ]
+@test bisectvalue(x->x*x + 1, pn3"0") == Pbound[]
+@test bisectvalue(x->x, pn3"/0") == [ pb3"/0" ]
+@test bisectvalue(x->(1+x)/(1-x), pn3"0") == [ pb3"-1", pb3"/0" ]
+@test bisectvalue(x->(1+x)/(1-x), pn3"/0") == [ pb3"1", pb3"/0" ]
+@test bisectvalue(x->x*x, Pnum3(2)) == [ pb3"(/0, -1)", pb3"(1, /0)" ]
+@test bisectvalue(x->pb3"(-1, 1)", pn3"0") == [ pb3"everything" ]
+
+@test bisectvalue(x->x*x, pn8"2") == [
+  pb8"(-3/2, -5/4)",
+  pb8"(5/4, 3/2)"
+]
+
+# This one is interesting because it shows how the dependency problem
+# can lead to imprecise solutions and "false positive" solutions.
+#
+# Notice that prev(pn8"/0") - prev(pn8"/0") = (/0, /0), i.e. the set of
+# all finite pnums. It is also a fixed point of multiplication. This
+# means it will show up as a solution whenever we add or subtract
+# non-constant monomials.
+bisectvalue(x->x*x*x - x, pn8"0") == [
+  pb8"(/0, -224)",
+  pb8"(-5/4, -4/5)",
+  pb8"(-1/224, /224)",
+  pb8"(4/5, 5/4)",
+  pb8"(224, /0]"
+]
