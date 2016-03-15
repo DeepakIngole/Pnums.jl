@@ -90,11 +90,8 @@ Base.inv(x::AbstractPnum) = rawpnum(typeof(x), -(index(x) + index(pninf(x))))
 # and the lookup tables will be used for runtime arithmetic
 
 function _exactplus{T<:AbstractPnum}(x::T, y::T)
-  # TODO figure out what type we actually want to be using here.
-  # For now, choosing Int128 because it is wide enough to hold the
-  # result of adding two Pnum16 values.
-  rx = Rational{Int128}(exactvalue(x))
-  ry = Rational{Int128}(exactvalue(y))
+  rx = widen(exactvalue(x))
+  ry = widen(exactvalue(y))
   (isinf(x) || isinf(y)) ? pninf(T) : convert(T, rx + ry)
 end
 
@@ -119,11 +116,8 @@ function slowplus{T<:AbstractPnum}(x::T, y::T)
 end
 
 function _exacttimes{T<:AbstractPnum}(x::T, y::T)
-  # TODO figure out what type we actually want to be using here.
-  # For now, choosing Int128 because it is wide enough to hold the
-  # result of multiplying two Pnum16 values.
-  rx = Rational{Int128}(exactvalue(x))
-  ry = Rational{Int128}(exactvalue(y))
+  rx = widen(exactvalue(x))
+  ry = widen(exactvalue(y))
   (isinf(x) || isinf(y)) ? pninf(T) : convert(T, rx*ry)
 end
 

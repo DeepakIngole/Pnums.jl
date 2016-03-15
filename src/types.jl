@@ -45,7 +45,7 @@ immutable Pnum3 <: AbstractPnum
 end
 
 storagetype(::Type{Pnum3}) = UInt8
-const pn3exacts = [1//1]
+const pn3exacts = Rational{Int8}[1//1]
 const pn3nvalues = 8*length(pn3exacts)
 exacts(::Type{Pnum3}) = pn3exacts
 pnnvalues(::Type{Pnum3}) = pn3nvalues
@@ -73,7 +73,7 @@ immutable Pnum4 <: AbstractPnum
 end
 
 storagetype(::Type{Pnum4}) = UInt8
-const pn4exacts = [1//1, 2//1]
+const pn4exacts = Rational{Int8}[1//1, 2//1]
 const pn4nvalues = 8*length(pn4exacts)
 exacts(::Type{Pnum4}) = pn4exacts
 pnnvalues(::Type{Pnum4}) = pn4nvalues
@@ -101,7 +101,7 @@ immutable Pnum8 <: AbstractPnum
 end
 
 storagetype(::Type{Pnum8}) = UInt8
-const pn8exacts = vcat([2^n*[4//4, 5//4, 6//4, 7//4] for n in 0:7]...)
+const pn8exacts = vec(Rational{Int32}[2^n*(4 + m)//4 for m in 0:3, n in 0:7])
 const pn8nvalues = 8*length(pn8exacts)
 exacts(::Type{Pnum8}) = pn8exacts
 pnnvalues(::Type{Pnum8}) = pn8nvalues
@@ -129,7 +129,7 @@ immutable Pnum16 <: AbstractPnum
 end
 
 storagetype(::Type{Pnum16}) = UInt16
-const pn16exacts = vec([Rational(2^n*(256+m), 256) for m in 0:255, n in 0:31])
+const pn16exacts = vec([Rational{Int64}(2^n*(256+m), 256) for m in 0:255, n in 0:31])
 const pn16nvalues = 8*length(pn16exacts)
 exacts(::Type{Pnum16}) = pn16exacts
 pnnvalues(::Type{Pnum16}) = pn16nvalues
