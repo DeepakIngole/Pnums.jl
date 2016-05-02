@@ -226,6 +226,34 @@ for x in allpb4
   @test Pnums.Sopn(exp(x)) == exp(Pnums.Sopn(x))
 end
 
+@test sqrt(pn3"0") == pb3"0"
+@test sqrt(pn3"(0, 1)") == pb3"(0, 1)"
+@test sqrt(pn3"1") == pb3"1"
+@test sqrt(pn3"(1, /0)") == pb3"(1, /0)"
+@test sqrt(pn3"/0") == pb3"/0"
+@test sqrt(pn3"(/0, -1)") == pb3"empty"
+@test sqrt(pn3"-1") == pb3"empty"
+@test sqrt(pn3"(-1, 0)") == pb3"empty"
+
+for x in allpb3
+  # Note, sqrt can be come disconnected for pbounds that wind around
+  # all negative numbers. In this case, choose closure of result, which
+  # results in not matching same result for Sopn.
+  if pn3"0" in x && pn3"/0" in x
+    @test sqrt(x) == pb3"[0, /0]"
+  else
+    @test Pnums.Sopn(sqrt(x)) == sqrt(Pnums.Sopn(x))
+  end
+end
+
+for x in allpb4
+  if pn4"0" in x && pn4"/0" in x
+    @test sqrt(x) == pb4"[0, /0]"
+  else
+    @test Pnums.Sopn(sqrt(x)) == sqrt(Pnums.Sopn(x))
+  end
+end
+
 @test bisectvalue(x->x*(x-1)*(x+1), pn3"0") == [ pb3"-1", pb3"0", pb3"1" ]
 @test bisectvalue(x->x*x + 1, pn3"0") == Pbound[]
 @test bisectvalue(x->x, pn3"/0") == [ pb3"/0" ]

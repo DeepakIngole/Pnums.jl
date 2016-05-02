@@ -206,6 +206,36 @@ function Base.exp{T<:AbstractPnum}(x::T)
   Pbound(y1, y2)
 end
 
+function Base.sqrt{T<:AbstractPnum}(x::T)
+  isstrictlynegative(x) && return pbempty(Pbound{T})
+  xexact = isexact(x)
+
+  x1, x2 = xexact ? (x, x) : (prevpnum(x), nextpnum(x))
+  if xexact
+    y1 = y2 = T(sqrt(exactvalue(x1)))
+  else
+    y1, y2 = T(sqrt(exactvalue(x1))), T(sqrt(exactvalue(x2)))
+  end
+
+  if isexact(y1)
+    if !xexact
+      y1 = nextpnum(y1)
+    elseif y1*y1 != x1
+      y1 = prevpnum(y1)
+    end
+  end
+
+  if isexact(y2)
+    if !xexact
+      y2 = prevpnum(y2)
+    elseif y2*y2 != x1
+      y2 = nextpnum(y2)
+    end
+  end
+
+  Pbound(y1, y2)
+end
+
 indexlength{T<:AbstractPnum}(x::T, y::T) = pnmod(T, index(y) - index(x))
 
 # Index midpoint between two Pnums. Note that this is asymmetric in
@@ -499,6 +529,20 @@ function Base.exp(x::Pbound)
   outer(exp(x1), exp(x2))
 end
 
+function possqrt(x::Pbound)
+  xempty, x1, x2 = unpack(x)
+  xempty && return pbempty(x)
+  outer(sqrt(x1), sqrt(x2))
+end
+
+function Base.sqrt(x::Pbound)
+  T = typeof(x)
+  isempty(x) && return pbempty(x)
+
+  x1, x2 = intersect(complement(pbneg(T)), x)
+  shortestcover(possqrt(x1), possqrt(x2))
+end
+
 function bisect(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return (pbempty(x), pbempty(x))
@@ -665,3 +709,4 @@ function Base.(:/){T}(x::Sopn{T}, y::Sopn{T})
 end
 
 Base.exp{T}(x::Sopn{T}) = mapreduce(exp, union!, Sopn(T), eachpnum(x))
+Base.sqrt{T}(x::Sopn{T}) = mapreduce(sqrt, union!, Sopn(T), eachpnum(x))
