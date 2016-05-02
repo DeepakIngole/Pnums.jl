@@ -159,6 +159,29 @@ Base.(:/){T<:AbstractPnum}(x::T, y::T) = x*inv(y)
 Base.(:(==))(x::AbstractPnum, y::Real) = isexact(x) && exactvalue(x) == y
 Base.(:(==))(x::Real, y::AbstractPnum) = y == x
 
+function Base.(:(^))(x::AbstractPnum, n::Integer)
+  T = typeof(x)
+  xexact = isexact(x)
+
+  # TODO converting to floats to avoid underflow/overflow problems.
+  # Should figure out if there's a decent way to work exactly
+  x1, x2 = xexact ? (x, x) : (prevpnum(x), nextpnum(x))
+  if xexact
+    y1 = y2 = T(convert(Float64, exactvalue(x1))^n)
+  else
+    y1, y2 = T(convert(Float64, exactvalue(x1))^n), T(convert(Float64, exactvalue(x2))^n)
+  end
+
+  if iseven(n) && isstrictlynegative(x)
+    y1, y2 = y2, y1
+  end
+
+  y1 = !xexact && isexact(y1) ? nextpnum(y1) : y1
+  y2 = !xexact && isexact(y2) ? prevpnum(y2) : y2
+
+  Pbound(y1, y2)
+end
+
 function Base.exp{T<:AbstractPnum}(x::T)
   # TODO exp(pn"/0") = pb"[0, /0]" is a little painful; it should really
   # be the disconnected set {pn"0", pn"/0"}.
@@ -522,6 +545,51 @@ function Base.(:(==))(x::Pbound, y::Real)
 end
 Base.(:(==))(x::Real, y::Pbound) = y == x
 
+
+function finitenonzeropow(x::Pbound, n::Integer)
+  xempty, x1, x2 = unpack(x)
+  xempty && return pbempty(x)
+
+  if isstrictlypositive(x) || isodd(n)
+    return outer(x1^n, x2^n)
+  else
+    return outer(x2^n, x1^n)
+  end
+end
+
+function finitepow{T<:AbstractPnum}(x::Pbound{T}, n::Integer)
+  isempty(x) && return pbempty(x)
+
+  if !(zero(T) in x)
+    return finitenonzeropow(x, n)
+  end
+
+  x1, x2 = intersect(pbnonzero(x), x)
+
+  return shortestcover(
+    finitenonzeropow(x1, n),
+    zero(x),
+    finitenonzeropow(x2, n)
+  )
+end
+
+function Base.(:(^)){T<:AbstractPnum}(x::Pbound{T}, n::Integer)
+  xempty, x1, x2 = unpack(x)
+  xempty && return pbempty(x)
+
+  if !(pninf(T) in x)
+    return finitepow(x, n)
+  end
+
+  x1, x2 = intersect(pbfinite(x), x)
+
+  return shortestcover(
+    finitepow(x1, n),
+    pbinf(x),
+    finitepow(x2, n)
+  )
+end
+
 function Base.exp(x::Pbound)
   xempty, x1, x2 = unpack(x)
   xempty && return pbempty(x)
@@ -704,6 +772,14 @@ function Base.(:/){T}(x::Sopn{T}, y::Sopn{T})
   out = Sopn(T)
   for xp in eachpnum(x), yp in eachpnum(y)
     union!(out, xp/yp)
+  end
+  out
+end
+
+function Base.(:^){T}(x::Sopn{T}, n::Integer)
+  out = Sopn(T)
+  for xp in eachpnum(x)
+    union!(out, xp^n)
   end
   out
 end

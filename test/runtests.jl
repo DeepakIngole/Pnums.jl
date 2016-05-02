@@ -209,6 +209,16 @@ for x1 in allpb3, x2 in allpb3
   @test (x1 == x2) == (Pnums.Sopn(x1) == Pnums.Sopn(x2))
 end
 
+for x in allpb3
+  @test Pnums.Sopn(x^2) == Pnums.Sopn(x)^2
+  @test Pnums.Sopn(x^3) == Pnums.Sopn(x)^3
+end
+
+for x in allpb4
+  @test Pnums.Sopn(x^2) == Pnums.Sopn(x)^2
+  @test Pnums.Sopn(x^3) == Pnums.Sopn(x)^3
+end
+
 @test exp(pn3"0") == pb3"1"
 @test exp(pn3"(0, 1)") == pb3"(1, /0)"
 @test exp(pn3"1") == pb3"(1, /0)"
