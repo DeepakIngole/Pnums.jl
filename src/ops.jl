@@ -650,11 +650,10 @@ end
 # For production implementation, probably want to allow limiting how
 # many bounds we'll visit, and probably want to go breadth first
 # instead of depth first.
-function bisectroot!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}})
+function bisectvalue!{T<:AbstractPnum}(f, x::Pbound{T}, y::T, accum::Vector{Pbound{T}})
   fx = f(x)
-  zr = zero(T)
-  zr in fx || return
-  if zr == fx
+  y in fx || return
+  if y == fx
     mergelast!(accum, x)
     return
   end
@@ -663,15 +662,20 @@ function bisectroot!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}})
     return
   end
   x1, x2 = bisect(x)
-  bisectroot!(f, x1, accum)
-  bisectroot!(f, x2, accum)
+  bisectvalue!(f, x1, y, accum)
+  bisectvalue!(f, x2, y, accum)
 end
 
-function bisectroot{T<:AbstractPnum}(f, x::Pbound{T})
+function bisectvalue{T<:AbstractPnum}(f, x::Pbound{T}, y::T)
   accum = Pbound{T}[]
-  bisectroot!(f, x, accum)
+  bisectvalue!(f, x, y, accum)
   return accum
 end
+
+bisectroot!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}}) =
+  bisectvalue!(f, x, zero(T), accum)
+
+bisectroot{T<:AbstractPnum}(f, x::Pbound{T}) = bisectvalue(f, x, zero(T))
 
 function _max{T<:AbstractPnum}(x::T, y::T)
   infindex = index(pninf(T))
@@ -711,7 +715,7 @@ end
 
 function bisectmaximum{T<:AbstractPnum}(f, x::Pbound{T})
   maxmin = bisectmaximumvalue(f, x)
-  bisectroot(x->f(x)-maxmin, x)
+  bisectvalue(f, x, maxmin)
 end
 
 immutable PboundIterator{T}
