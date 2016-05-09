@@ -348,6 +348,8 @@ function Base.in{T<:AbstractPnum}(y::T, x::Pbound{T})
   indexlength(x1, y) <= indexlength(x1, x2)
 end
 
+Base.in{T<:AbstractPnum}(x::Real, y::Pbound{T}) = convert(T, x) in y
+
 function Base.intersect{T<:Pbound}(x::T, y::T)
   xempty, x1, x2 = unpack(x)
   yempty, y1, y2 = unpack(y)
