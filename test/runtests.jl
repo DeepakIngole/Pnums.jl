@@ -289,10 +289,12 @@ end
 # all finite pnums. It is also a fixed point of multiplication. This
 # means it will show up as a solution whenever we add or subtract
 # non-constant monomials.
-bisectroot(x->x*x*x - x, pb8"everything") == [
+@test bisectroot(x->x*x*x - x, pb8"everything") == [
   pb8"(/0, -224)",
   pb8"(-5/4, -4/5)",
   pb8"(-1/224, /224)",
   pb8"(4/5, 5/4)",
   pb8"(224, /0]"
 ]
+
+@test bisectmaximum(x->-(x-4)^2, pb8"everything") == [ pb8"4" ]

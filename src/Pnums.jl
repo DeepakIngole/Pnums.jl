@@ -24,6 +24,7 @@ export
   @pb16_str,
   bisect,
   bisectroot,
+  bisectmaximum,
   eachpnum
 
 end

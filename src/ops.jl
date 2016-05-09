@@ -671,6 +671,47 @@ function bisectroot{T<:AbstractPnum}(f, x::Pbound{T})
   return accum
 end
 
+function _max{T<:AbstractPnum}(x::T, y::T)
+  infindex = index(pninf(T))
+  maxindex = max(pnmod(T,index(x) + infindex), pnmod(T,index(y) + infindex))
+  fromindex(T, pnmod(T, maxindex - infindex))
+end
+
+function bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pbound{T}})
+  maxmin = pninf(T)
+  push!(trials, x)
+  while length(trials) > 0
+    x = pop!(trials)
+    y = f(x)
+    yempty, y1, y2 = unpack(y)
+    yempty && continue
+    if pninf(T) in y
+      if !issinglepnum(x)
+        push!(trials, bisect(x)...)
+      end
+    else
+      maxmin = _max(y1, maxmin)
+      if !issinglepnum(x)
+        if y2 in Pbound(maxmin, pninf(T))
+          push!(trials, bisect(x)...)
+        end
+      end
+    end
+  end
+
+  return maxmin
+end
+
+function bisectmaximumvalue{T<:AbstractPnum}(f, x::Pbound{T})
+  trials = Pbound{T}[]
+  bisectmaximumvalue!(f, x, trials)
+end
+
+function bisectmaximum{T<:AbstractPnum}(f, x::Pbound{T})
+  maxmin = bisectmaximumvalue(f, x)
+  bisectroot(x->f(x)-maxmin, x)
+end
+
 immutable PboundIterator{T}
   pb::Pbound{T}
   len::Int
