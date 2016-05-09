@@ -21,38 +21,25 @@ The initial prototype implements 3-bit Pnums: the exact values -1, 0, 1, and /0,
 I have also implemented simple root bisection, which is capable of things like this:
 
 ```
-julia> bisectvalue(x->x*(x*x - 1), pn"0")
+julia> bisectroot(x->x*(x*x - 1), pb3"everything")
 
-3-element Array{Pnums.Pbound,1}:
-  pb"-1"
-  pb"0"
-  pb"1"
-
+3-element Array{Pnums.Pbound{Pnums.Pnum3},1}:
+ pb3"-1"
+  pb3"0"
+  pb3"1"
 ```
 
-Notice that this is *global* root finding; if no search range is specified, the routine will bisect over the entire set of Pnums (there are only 8 of them, so this is less impressive than it seems).
+Notice that this is *global* root finding.
 
 There is no exact representation of 3 in the 3-bit Pnums, but bisection can still accurately find  regions that enclose the exact solution of `x^2 = 3`.
 
 ```
-julia> bisectvalue(x->x*x, Pnum(3))
+julia> bisectroot(x->x*x-3, pb3"everything")
 
-2-element Array{Pnums.Pbound,1}:
-  pb"(/0, -1)"
-  pb"(1, /0)"
+2-element Array{Pnums.Pbound{Pnums.Pnum3},1}:
+ pb3"(/0, -1)"
+  pb3"(1, /0)"
 ```
-
-It is also possible to search for regions where a function may be infinite:
-
-```
-julia> bisectvalue(x->(x*x-1)/x, pn"/0")
-
-2-element Array{Pnums.Pbound,1}:
-  pb"0"
-  pb"/0"
-```
-
-Notice that projective infinity is also one of the answers.
 
 I have also implemented a rudimentary version of dense Sets of Real Numbers over these Pnums, which is currently used only for testing the correctness of the Pbound routines. This is an important function, though. Multiplication is a non-convex, saddle-shaped function, and there are many edge cases to get correct when splitting a pair of Pbounds into quadrants and reassembling the pieces of an answer.
 

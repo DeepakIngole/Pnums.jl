@@ -23,7 +23,7 @@ export
   @pn16_str,
   @pb16_str,
   bisect,
-  bisectvalue,
+  bisectroot,
   eachpnum
 
 end

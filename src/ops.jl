@@ -648,29 +648,28 @@ end
 # For production implementation, probably want to allow limiting how
 # many bounds we'll visit, and probably want to go breadth first
 # instead of depth first.
-function bisectvalue!{T<:AbstractPnum}(f, x::T, y::Pbound{T}, accum::Vector{Pbound{T}})
-  fy = f(y)
-  x in fy || return
-  if Pbound(x) == fy
-    mergelast!(accum, y)
+function bisectroot!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}})
+  fx = f(x)
+  zr = zero(T)
+  zr in fx || return
+  if zr == fx
+    mergelast!(accum, x)
     return
   end
-  if issinglepnum(y)
-    mergelast!(accum, y)
+  if issinglepnum(x)
+    mergelast!(accum, x)
     return
   end
-  y1, y2 = bisect(y)
-  bisectvalue!(f, x, y1, accum)
-  bisectvalue!(f, x, y2, accum)
+  x1, x2 = bisect(x)
+  bisectroot!(f, x1, accum)
+  bisectroot!(f, x2, accum)
 end
 
-function bisectvalue{T<:AbstractPnum}(f, x::T, y::Pbound{T})
+function bisectroot{T<:AbstractPnum}(f, x::Pbound{T})
   accum = Pbound{T}[]
-  bisectvalue!(f, x, y, accum)
+  bisectroot!(f, x, accum)
   return accum
 end
-
-bisectvalue{T<:AbstractPnum}(f, x::T) = bisectvalue(f, x, pbeverything(Pbound{T}))
 
 immutable PboundIterator{T}
   pb::Pbound{T}
