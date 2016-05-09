@@ -683,7 +683,11 @@ function _max{T<:AbstractPnum}(x::T, y::T)
   fromindex(T, pnmod(T, maxindex - infindex))
 end
 
-function bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pbound{T}})
+# TODO making this "private" because the value it returns is just a
+# lower bound on the maximum value. It would be a better general
+# purpose API to return a Pbound from this function, but that isn't
+# necessary for using it as a subroutine of bisectmaximum.
+function _bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pbound{T}})
   maxmin = pninf(T)
   push!(trials, x)
   while length(trials) > 0
@@ -708,13 +712,8 @@ function bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pb
   return maxmin
 end
 
-function bisectmaximumvalue{T<:AbstractPnum}(f, x::Pbound{T})
-  trials = Pbound{T}[]
-  bisectmaximumvalue!(f, x, trials)
-end
-
 function bisectmaximum{T<:AbstractPnum}(f, x::Pbound{T})
-  maxmin = bisectmaximumvalue(f, x)
+  maxmin = _bisectmaximumvalue!(f, x, Pbound{T}[])
   bisectvalue(f, x, maxmin)
 end
 
