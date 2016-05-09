@@ -159,7 +159,7 @@ Base.(:/){T<:AbstractPnum}(x::T, y::T) = x*inv(y)
 Base.(:(==))(x::AbstractPnum, y::Real) = isexact(x) && exactvalue(x) == y
 Base.(:(==))(x::Real, y::AbstractPnum) = y == x
 
-function Base.(:(^))(x::AbstractPnum, n::Integer)
+function Base.(:^)(x::AbstractPnum, n::Integer)
   T = typeof(x)
   xexact = isexact(x)
 
@@ -573,7 +573,7 @@ function finitepow{T<:AbstractPnum}(x::Pbound{T}, n::Integer)
   )
 end
 
-function Base.(:(^)){T<:AbstractPnum}(x::Pbound{T}, n::Integer)
+function Base.(:^){T<:AbstractPnum}(x::Pbound{T}, n::Integer)
   xempty, x1, x2 = unpack(x)
   xempty && return pbempty(x)
 
