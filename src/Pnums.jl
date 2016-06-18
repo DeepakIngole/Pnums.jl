@@ -3,6 +3,7 @@ module Pnums
 include("types.jl")
 include("ops.jl")
 include("io.jl")
+include("print_decimal.jl")
 
 export
   Pbound,
