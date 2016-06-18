@@ -728,6 +728,9 @@ function eachpnum(x::Pbound)
   PboundIterator(x, indexlength(x1, x2) + 1)
 end
 
+eachpnum{T}(x::Type{Pbound{T}}) = eachpnum(pbeverything(x))
+eachpnum{T<:AbstractPnum}(x::Type{T}) = eachpnum(pbeverything(Pbound{T}))
+
 function Base.start(x::PboundIterator)
   xempty, x1, x2 = unpack(x.pb)
   (x1, 1)
