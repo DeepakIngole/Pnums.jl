@@ -4,7 +4,7 @@
 
 Pnums are a prototype Julia implementation of Gustafson's [Unums 2.0 [PDF]](http://www.johngustafson.net/presentations/Unums2.0.pdf). (The "p" stands either for "prototype" or "projective," I haven't totally decided yet).
 
-The remainder of the README serves as reference documentation. See also the [tutorial introduction](/examples/tutorial.ipynb).
+The remainder of the README serves as reference documentation. See also the [tutorial introduction](/example/Tutorial.ipynb).
 
 ### Unums 2.0 background
 
@@ -206,7 +206,7 @@ Again, it may make sense to apply this strategy automatically to 3-, 4-, or 8-bi
 
 Julia implementations of Unums 1.0:
 
-* [JuliaComputing/Unums](https://github.com/JuliaComputing/Unums.jl)
+* [JuliaComputing/Unums.jl](https://github.com/JuliaComputing/Unums.jl)
 * [tbreloff/Unums.jl](https://github.com/tbreloff/Unums.jl)
 * [dpsanders/SimpleUnums.jl](https://github.com/dpsanders/SimpleUnums.jl)
 
