@@ -23,9 +23,11 @@ export
   Pbound16,
   @pn16_str,
   @pb16_str,
-  bisect,
+  bisectvalue,
   bisectroot,
   bisectmaximum,
+  nextpnum,
+  prevpnum,
   eachpnum
 
 end
