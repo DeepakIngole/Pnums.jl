@@ -30,9 +30,9 @@ The basic unit of computation is the Pnum. Each Pnum represents either an exact 
 | `Pnum8` | `pn8"1"` |
 | `Pnum16`| `pn16"1"`|
 
-This is analogous to the different precisions of integers or floating point numbers, like Int8, Int32, Float16, or Float64. The lowest precision Pnum, the 3-bit Pnum3, can represent -1, 0, 1, /0, and the open subsets between these values (/0 is Gustafson's notation for projective ∞; the notation means "reciprocal of 0"). Pnum4 adds ±2 and ±1/2. Pnum8 has enough exact values for 1/4 of a decimal of precision between 10^-3 and 224. Pnum16 has 2-3 decimal digits of precision between 10^-9 and 10^9.
+This is analogous to the different precisions of integers or floating point numbers, like `Int8`, `Int32`, `Float16`, or `Float64`. The lowest precision Pnum, the 3-bit `Pnum3`, can represent -1, 0, 1, /0, and the open subsets between these values (/0 is Gustafson's notation for projective ∞; the notation means "reciprocal of 0"). `Pnum4` adds ±2 and ±1/2. `Pnum8` has enough exact values for 1/4 of a decimal of precision between 10^-3 and 224. `Pnum16` has 2-3 decimal digits of precision between 10^-9 and 10^9.
 
-Note, the exact values used here don't precisely match Gustafson's proposal, but it's reasonably easy to create new types using whatever exact values you want.
+Note, the exact values used here don't precisely match Gustafson's proposal (I haven't tried to include simple decimals in the exact values), but it's reasonably easy to create new types using whatever exact values you want.
 
 Open or closed intervals are represented by Pbounds composed of a pair Pnum endpoints (inexact or exact for open or closed endpoints, respectively), plus a flag to indicate whether the bound is empty. Pbounds are parametrized by the Pnum type of their endpoints, with aliases for the existing types:
 
