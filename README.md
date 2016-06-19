@@ -4,9 +4,9 @@
 
 Pnums are a prototype Julia implementation of Gustafson's [Unums 2.0 [PDF]](http://www.johngustafson.net/presentations/Unums2.0.pdf).
 
-The "P" in Pnums stands either for "prototype" or "projective," I haven't totally decided yet. There are currently several [limitations and differences](#current-limitations) from Unums 2.0 proposal, which is part of the reason for the "P" in the name.
+The "P" in Pnums stands either for "prototype" or "projective," I haven't totally decided yet. There are currently several [limitations and differences](#current-limitations) from the Unums 2.0 proposal, which is part of the reason for the "P" in the name.
 
-The remainder of the README serves as reference documentation. See also the [tutorial introduction](/example/Tutorial.ipynb).
+See the [tutorial introduction](/example/Tutorial.ipynb) for a tutorial; the remainder of the README is closer to reference documentation.
 
 ### Unums 2.0 background
 
@@ -106,7 +106,7 @@ The neighbors of exact values are always inexact, and vice versa.
 
 ### Combining Pbounds
 
-* shortestcover(x::Pbound, y::Pbound)
+* `shortestcover(x::Pbound, y::Pbound)`
 
 `shortestcover` returns the smallest Pbound that contains all the Pnums in both of its inputs.
 
@@ -173,7 +173,7 @@ Lookup tables would be trivial to implement, and would probably improve the perf
 If the exact Pnum values were all representable as floating point numbers, then lookup tables would not be necessary; however, this would require abandoning reciprocal closure (the property that the reciprocal of every exact value is also an exact value). My personal conclusion is that reciprocal closure is not worth this cost (unless some alternative way of doing fast arithmetic without lookup tables can be found).
 
 ##### No automatic subdivision
-The Unums 2.0 proposal suggests a way to partially address the dependency problem: when an interval-valued (or set-valued) variable shows up more than once in a computation, run the computation separately on each individual Unum contained in the interval/set, and then form the union of the results at the end. I have not implemented this as an automated strategy, but you can implement it manually using `eachpnum` and `shortestcover`
+The Unums 2.0 proposal suggests a way to partially address the dependency problem: when an interval-valued (or set-valued) variable shows up more than once in a computation, run the computation separately on each individual Unum contained in the interval/set, and then form the union of the results at the end. I have not implemented this as an automated strategy, but you can simulate it manually using `eachpnum` and `shortestcover`
 
 For example:
 
