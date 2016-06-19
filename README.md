@@ -88,7 +88,7 @@ Arithmetic (`+`, `-`, `*`, `/`) on Pnums produces Pbound outputs. Pbounds are cl
 You can iterate through all the Pnums contained in a Pbound using eachpnum. For example:
 
 ```julia
-collect(eachpnum(pb3"[0, /0)"))
+collect(eachpnum(pb4"[0, /0)"))
 # 8-element Array{Pnums.Pnum4,1}:
 #        pn4"0"
 #  pn4"(0, /2)"
