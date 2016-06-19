@@ -23,16 +23,16 @@ The basic unit of computation is the Pnum. Each Pnum represents either an exact 
 
 | Type    | Literal  |
 |---------|----------|
-| `Pnum3` | `pb3"1"` |
-| `Pnum4` | `pb4"1"` |
-| `Pnum8` | `pb8"1"` |
-| `Pnum16`| `pb16"1"`|
+| `Pnum3` | `pn3"1"` |
+| `Pnum4` | `pn4"1"` |
+| `Pnum8` | `pn8"1"` |
+| `Pnum16`| `pn16"1"`|
 
-This is analogous to the different precisions of integers or floating point numbers, like Int8, Int32, Float16, or Float64. The lowest precision Pnum, the 3-bit Pnum3, can represent -1, 0, 1, /0, and the open subsets between these values (/0 is Gustafson's notation for projective ∞; the notation means "reciprocal of 0"). Pnum4 adds ±2 and ±1/2, Pnum8 has enough exact values for 1/4 of a decimal of precision between 10^-3 and 224, and Pnum16 has 2-3 decimal digits of precision between 10^-9 and 10^9.
+This is analogous to the different precisions of integers or floating point numbers, like Int8, Int32, Float16, or Float64. The lowest precision Pnum, the 3-bit Pnum3, can represent -1, 0, 1, /0, and the open subsets between these values (/0 is Gustafson's notation for projective ∞; the notation means "reciprocal of 0"). Pnum4 adds ±2 and ±1/2. Pnum8 has enough exact values for 1/4 of a decimal of precision between 10^-3 and 224. Pnum16 has 2-3 decimal digits of precision between 10^-9 and 10^9.
 
 Note, the exact values used here don't precisely match Gustafson's proposal, but it's reasonably easy to create new types using whatever exact values you want.
 
-Open or closed intervals are represented by Pbounds with inexact or exact Pnum endpoints respectively. Pbounds are parametrized by the Pnum type of their endpoints, with aliases for the existing types:
+Open or closed intervals are represented by Pbounds composed of a pair Pnum endpoints (inexact or exact for open or closed endpoints, respectively), plus a flag to indicate whether the bound is empty. Pbounds are parametrized by the Pnum type of their endpoints, with aliases for the existing types:
 
 | Type           | Alias      | Literal       |
 |----------------|------------|---------------|
@@ -41,9 +41,9 @@ Open or closed intervals are represented by Pbounds with inexact or exact Pnum e
 |`Pbound{Pnum8}` | `Pbound8`  | `pb8"(0, 1]"` |
 |`Pbound{Pnum16}`| `Pbound16` | `pb16"(0, 1]"`|
 
-Pbounds represent values on the projective circle moving counter-clockwise from the first endpoint to their second endpoint.
+Pbounds represent all values on the projective circle between their first and second endpoints, always moving clockwise. The distinction is relevant for bounds that span infinity.
 
-For example, `pb8"(-1, 1)` represents all reals with magnitude strictly less than 1, but `pb8"(1, -1)` represents all reals with magnitude strictly larger than 1 (and infinity).
+For example, `pb8"(-1, 1)"` represents all reals with magnitude strictly less than 1, but `pb8"(1, -1)"` represents all reals with magnitude strictly larger than 1 (and infinity).
 
 ### Construction
 
@@ -56,7 +56,7 @@ Similarly, Pbounds can be created by calling the type constructor with one or tw
 | Type           | Example Literal       |
 |----------------|-----------------------|
 |`/0` (Infinity) | `pb8"/0"`             |
-|`everything`    | `pb8"everything`      |
+|`everything`    | `pb8"everything"`     |
 |`empty`         | `pb8"empty"`          |
 
 ### Arithmetic
@@ -95,6 +95,9 @@ Given a Pnum, you can find the neighboring Pnums with `nextpnum` (counterclockwi
 ```julia
 nextpnum(pn8"0")  # pn8"(0, /224)"
 prevpnum(pn8"/0") # pn8"(224, /0)"
+nextpnum(pn8"/0") # pn8"(/0, -224)"
+
+nextpnum(nextpnum(pn4"1")) # pn4"2"
 ```
 
 The neighbors of exact values are always inexact, and vice versa.
@@ -148,15 +151,16 @@ This library contains an unexported type, `Pnums.Sopn` that implements a dense r
 
 I have chosen to focus on contiguous intervals (Pbounds), because it seems that dense representations won't be able to scale well to higher precisions and multiple dimensions (a dense bitset for 32-bit Pnums would require 2^32 bits ≈ 500MB to represent a single set, and the storage requirements for a dense 2D set over 16-bit Pnums would be the same).
 
-Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by findroots and findmaximum are exactly this kind of sparse representation.
+Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by `findroots` and `findmaximum` are exactly this kind of sparse representation.
 
 ### Other Limitations
 
+#### No lookup tables
 My implementation strategy means performance can't be competitive with floats or traditional intervals.
 
-Gustafson suggests implementing arithmetic and functions using lookup tables. I have not implemented lookup tables; instead, operations are done internally on higher precision representations and then the results are looked up in the table of exact values dynamically using bisection.
+Gustafson suggests implementing arithmetic and functions using lookup tables. I have not implemented lookup tables; instead, operations are done internally on higher precision representations and then the results are looked up in the table of exact values dynamically using binary search.
 
-Lookup tables would be trivial to implement, and would probably improve the performance of 3-, 4-, and 8-bit Pnums, but a lookup table for multiplication of 16-bit Pnums would require (2^16*2^16*32/2 bits ≈ 8.5 GB) of storage. Doing a lookup into a table that large for every arithmetic operation does not seem practical for a software implementation.
+Lookup tables would be trivial to implement, and would probably improve the performance of 3-, 4-, and 8-bit Pnums, but a lookup table for multiplication of 16-bit Pnums would require (`2^16*2^16*32/2` bits ≈ 8.5 GB) of storage. Doing a lookup into a table that large for every arithmetic operation does not seem practical for a software implementation.
 
 If the exact Pnum values were all representable as floating point numbers, then lookup tables would not be necessary; however, this would require abandoning reciprocal closure (the property that the reciprocal of every exact value is also an exact value). My personal conclusion is that reciprocal closure is not worth this cost (unless some alternative way of doing fast arithmetic without lookup tables can be found).
 
@@ -164,9 +168,9 @@ If the exact Pnum values were all representable as floating point numbers, then 
 
 Julia implementations of Unums 1.0:
 
-* (JuliaComputing/Unums)[https://github.com/JuliaComputing/Unums.jl]
-* (tbreloff/Unums.jl)[https://github.com/tbreloff/Unums.jl]
-* (dpsanders/SimpleUnums.jl)[https://github.com/dpsanders/SimpleUnums.jl]
+* [JuliaComputing/Unums](https://github.com/JuliaComputing/Unums.jl]
+* [tbreloff/Unums.jl](https://github.com/tbreloff/Unums.jl]
+* [dpsanders/SimpleUnums.jl](https://github.com/dpsanders/SimpleUnums.jl]
 
 Julia implementations of traditional interval arithmetic:
 
