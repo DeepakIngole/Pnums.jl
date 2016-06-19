@@ -335,7 +335,7 @@ function Base.inv(x::Pbound)
   Pbound(inv(x2), inv(x1))
 end
 
-function Base.complement(x::Pbound)
+function complement(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return pbeverything(x)
   iseverything(x) && return pbempty(x)

@@ -104,7 +104,7 @@ end
 for x1 in eachpnum(pb3"everything"), x2 in eachpnum(pb3"everything")
   x = Pbound(x1, x2)
   for x3 in x
-    @test !(x3 in complement(x))
+    @test !(x3 in Pnums.complement(x))
   end
 end
 
