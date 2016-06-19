@@ -4,7 +4,7 @@
 
 Pnums are a prototype Julia implementation of Gustafson's [Unums 2.0 [PDF]](http://www.johngustafson.net/presentations/Unums2.0.pdf).
 
-The "P" in Pnums stands either for "prototype" or "projective," I haven't totally decided yet. There are currently several [limitations and differences](#Current Limitations) from Unums 2.0 proposal, which is part of the reason for the "P" in the name.
+The "P" in Pnums stands either for "prototype" or "projective," I haven't totally decided yet. There are currently several [limitations and differences](#current-limitations) from Unums 2.0 proposal, which is part of the reason for the "P" in the name.
 
 The remainder of the README serves as reference documentation. See also the [tutorial introduction](/example/Tutorial.ipynb).
 
