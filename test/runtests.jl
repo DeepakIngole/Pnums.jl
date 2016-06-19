@@ -264,20 +264,20 @@ for x in allpb4
   end
 end
 
-@test bisectroot(x->x*(x-1)*(x+1), pb3"everything") == [ pb3"-1", pb3"0", pb3"1" ]
-@test bisectroot(x->x*x + 1, pb3"everything") == Pbound[]
-@test bisectroot(x->1/x, pb3"everything") == [ pb3"/0" ]
-@test bisectroot(x->(1+x)/(1-x), pb3"everything") == [ pb3"-1", pb3"/0" ]
-@test bisectroot(x->(1-x)/(1+x), pb3"everything") == [ pb3"1", pb3"/0" ]
-@test bisectroot(x->x*x-2, pb3"everything") == [ pb3"(/0, -1)", pb3"(1, /0)" ]
-@test bisectroot(x->pb3"(-1, 1)", pb3"everything") == [ pb3"everything" ]
+@test findroots(x->x*(x-1)*(x+1), pb3"everything") == [ pb3"-1", pb3"0", pb3"1" ]
+@test findroots(x->x*x + 1, pb3"everything") == Pbound[]
+@test findroots(x->1/x, pb3"everything") == [ pb3"/0" ]
+@test findroots(x->(1+x)/(1-x), pb3"everything") == [ pb3"-1", pb3"/0" ]
+@test findroots(x->(1-x)/(1+x), pb3"everything") == [ pb3"1", pb3"/0" ]
+@test findroots(x->x*x-2, pb3"everything") == [ pb3"(/0, -1)", pb3"(1, /0)" ]
+@test findroots(x->pb3"(-1, 1)", pb3"everything") == [ pb3"everything" ]
 
-@test bisectroot(x->x*x-2, pb8"everything") == [
+@test findroots(x->x*x-2, pb8"everything") == [
   pb8"(-3/2, -5/4)",
   pb8"(5/4, 3/2)"
 ]
 
-@test bisectroot(x->x*x-2, pb16"everything") == [
+@test findroots(x->x*x-2, pb16"everything") == [
   pb16"(-363/256, -181/128)",
   pb16"(181/128, 363/256)"
 ]
@@ -289,7 +289,7 @@ end
 # all finite pnums. It is also a fixed point of multiplication. This
 # means it will show up as a solution whenever we add or subtract
 # non-constant monomials.
-@test bisectroot(x->x*x*x - x, pb8"everything") == [
+@test findroots(x->x*x*x - x, pb8"everything") == [
   pb8"(/0, -224)",
   pb8"(-5/4, -4/5)",
   pb8"(-1/224, /224)",
@@ -297,4 +297,4 @@ end
   pb8"(224, /0]"
 ]
 
-@test bisectmaximum(x->-(x-4)^2, pb8"everything") == [ pb8"4" ]
+@test findmaximum(x->-(x-4)^2, pb8"everything") == [ pb8"4" ]

@@ -24,10 +24,9 @@ export
   @pn16_str,
   @pb16_str,
   bisectvalue,
-  bisectroot,
-  bisectmaximum,
+  findroots,
+  findmaximum,
   nextpnum,
   prevpnum,
   eachpnum
-
 end

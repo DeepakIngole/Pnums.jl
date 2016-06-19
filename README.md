@@ -101,25 +101,25 @@ The neighbors of exact values are always inexact, and vice versa.
 
 ### Root and maximum finding
 
-* `bisectroot(fn::Function, rng::Pbound)`
-* `bisectmaximum(fn::Function, rng::Pbound)`
+* `findroots(fn::Function, rng::Pbound)`
+* `findmaximum(fn::Function, rng::Pbound)`
 
-Root finding and optimization (1D only) are implemented through `bisectroot` and `bisectmaximum`. Both of these are global methods.
+Root finding and optimization (1D only) are implemented through `findroots` and `findmaximum`. Both of these are global methods.
 
-`bisectroot` returns an array of disjoint Pbounds; all the roots of the function within the input range are guaranteed to lie within one of the returned Pbounds (but there is no guarantee of how many roots (if any) each interval actually contains). For example:
+`findroots` returns an array of disjoint Pbounds; all the roots of the function within the input range are guaranteed to lie within one of the returned Pbounds (but there is no guarantee of how many roots (if any) each interval actually contains). For example:
 
 ```julia
-bisectroot(x->x*(x*x - 1), pb3"everything")
+findroots(x->x*(x*x - 1), pb3"everything")
 # 3-element Array{Pnums.Pbound{Pnums.Pnum3},1}:
 #  pb3"-1"
 #   pb3"0"
 #   pb3"1"
 ```
 
-`bisectmaximum` returns an array of disjoint Pbounds; the global maximum of the function within the input range is guaranteed to lie within one of the returned Pbounds. For example:
+`findmaximum` returns an array of disjoint Pbounds; the global maximum of the function within the input range is guaranteed to lie within one of the returned Pbounds. For example:
 
 ```julia
-bisectmaximum(x->-(x-4)^2 + 3, pb8"everything")
+findmaximum(x->-(x-4)^2 + 3, pb8"everything")
 # 1-element Array{Pnums.Pbound{Pnums.Pnum8},1}:
 #  pb8"4"
 ```
@@ -127,7 +127,7 @@ bisectmaximum(x->-(x-4)^2 + 3, pb8"everything")
 The results of root finding and maximization aren't always as clean as the above examples. The [dependency problem](https://en.wikipedia.org/wiki/Interval_arithmetic#Dependency_problem) may make it impossible to eliminate some ranges that contain no actual solutions:
 
 ```julia
-bisectmaximum(x->x-exp(x), pb8"everything")
+findmaximum(x->x-exp(x), pb8"everything")
 # 7-element Array{Pnums.Pbound{Pnums.Pnum8},1}:
 #  pb8"(-1/2, -2/5)"
 #  pb8"(-1/3, -1/5)"
@@ -148,7 +148,7 @@ This library contains an unexported type, `Pnums.Sopn` that implements a dense r
 
 I have chosen to focus on contiguous intervals (Pbounds), because it seems that dense representations won't be able to scale well to higher precisions and multiple dimensions (a dense bitset for 32-bit Pnums would require 2^32 bits ≈ 500MB to represent a single set, and the storage requirements for a dense 2D set over 16-bit Pnums would be the same).
 
-Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by bisectroot and bisectmaximum are exactly this kind of sparse representation.
+Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by findroots and findmaximum are exactly this kind of sparse representation.
 
 ### Other Limitations
 

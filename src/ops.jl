@@ -672,10 +672,10 @@ function bisectvalue{T<:AbstractPnum}(f, x::Pbound{T}, y::T)
   return accum
 end
 
-bisectroot!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}}) =
+findroots!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}}) =
   bisectvalue!(f, x, zero(T), accum)
 
-bisectroot{T<:AbstractPnum}(f, x::Pbound{T}) = bisectvalue(f, x, zero(T))
+findroots{T<:AbstractPnum}(f, x::Pbound{T}) = bisectvalue(f, x, zero(T))
 
 function _max{T<:AbstractPnum}(x::T, y::T)
   infindex = index(pninf(T))
@@ -686,8 +686,8 @@ end
 # TODO making this "private" because the value it returns is just a
 # lower bound on the maximum value. It would be a better general
 # purpose API to return a Pbound from this function, but that isn't
-# necessary for using it as a subroutine of bisectmaximum.
-function _bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pbound{T}})
+# necessary for using it as a subroutine of findmaximum.
+function _findmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{Pbound{T}})
   maxmin = pninf(T)
   push!(trials, x)
   while length(trials) > 0
@@ -712,8 +712,8 @@ function _bisectmaximumvalue!{T<:AbstractPnum}(f, x::Pbound{T}, trials::Vector{P
   return maxmin
 end
 
-function bisectmaximum{T<:AbstractPnum}(f, x::Pbound{T})
-  maxmin = _bisectmaximumvalue!(f, x, Pbound{T}[])
+function findmaximum{T<:AbstractPnum}(f, x::Pbound{T})
+  maxmin = _findmaximumvalue!(f, x, Pbound{T}[])
   bisectvalue(f, x, maxmin)
 end
 
