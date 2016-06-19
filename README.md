@@ -159,7 +159,7 @@ The Unums 2.0 proposal suggests doing most computations on arbitrary sets of Unu
 
 This library contains an unexported type, `Pnums.Sopn` that implements a dense representation of sets of Pnums (backed by Julia's `IntSet`). It is currently used internally for testing, but I haven't built a lot of conveniences for it yet (like nice display and convenient constructors).
 
-I have chosen to focus on contiguous intervals (Pbounds), because it seems that dense representations won't be able to scale well to higher precisions and multiple dimensions (a dense bitset for 32-bit Pnums would require 2^32 bits ≈ 500MB to represent a single set, and the storage requirements for a dense 2D set over 16-bit Pnums would be the same).
+I have chosen to focus on contiguous intervals (Pbounds), because it seems that dense representations won't be able to scale well to higher precisions and multiple dimensions. For example, a dense bitset for 32-bit Pnums would require 2^32 bits ≈ 500MB to represent a single set. The storage requirements for a dense 2D set over 16-bit Pnums would be the same.
 
 Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by `findroots` and `findmaximum` are exactly this kind of sparse representation.
 
@@ -210,6 +210,7 @@ Julia implementations of Unums 1.0:
 
 * [JuliaComputing/Unums.jl](https://github.com/JuliaComputing/Unums.jl)
 * [tbreloff/Unums.jl](https://github.com/tbreloff/Unums.jl)
+* [REX-Computing/unumjl](https://github.com/REX-Computing/unumjl)
 * [dpsanders/SimpleUnums.jl](https://github.com/dpsanders/SimpleUnums.jl)
 
 Julia implementations of traditional interval arithmetic:
