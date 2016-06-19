@@ -28,5 +28,6 @@ export
   findmaximum,
   nextpnum,
   prevpnum,
-  eachpnum
+  eachpnum,
+  shortestcover
 end

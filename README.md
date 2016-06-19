@@ -102,6 +102,12 @@ nextpnum(nextpnum(pn4"1")) # pn4"2"
 
 The neighbors of exact values are always inexact, and vice versa.
 
+### Combining Pbounds
+
+* shortestcover(x::Pbound, y::Pbound)
+
+`shortestcover` returns the smallest Pbound that contains all the Pnums in both of its inputs.
+
 ### Root and maximum finding
 
 * `findroots(fn::Function, rng::Pbound)`
@@ -155,7 +161,7 @@ Contiguous intervals should be a useful building block for *sparse* represetatio
 
 ### Other Limitations
 
-#### No lookup tables
+##### No lookup tables
 My implementation strategy means performance can't be competitive with floats or traditional intervals.
 
 Gustafson suggests implementing arithmetic and functions using lookup tables. I have not implemented lookup tables; instead, operations are done internally on higher precision representations and then the results are looked up in the table of exact values dynamically using binary search.
@@ -163,6 +169,38 @@ Gustafson suggests implementing arithmetic and functions using lookup tables. I 
 Lookup tables would be trivial to implement, and would probably improve the performance of 3-, 4-, and 8-bit Pnums, but a lookup table for multiplication of 16-bit Pnums would require (`2^16*2^16*32/2` bits ≈ 8.5 GB) of storage. Doing a lookup into a table that large for every arithmetic operation does not seem practical for a software implementation.
 
 If the exact Pnum values were all representable as floating point numbers, then lookup tables would not be necessary; however, this would require abandoning reciprocal closure (the property that the reciprocal of every exact value is also an exact value). My personal conclusion is that reciprocal closure is not worth this cost (unless some alternative way of doing fast arithmetic without lookup tables can be found).
+
+##### No automatic subdivision
+The Unums 2.0 proposal suggests a way to partially address the dependency problem: when an interval-valued (or set-valued) variable shows up more than once in a computation, run the computation separately on each individual Unum contained in the interval/set, and then form the union of the results at the end. I have not implemented this as an automated strategy, but you can implement it manually using `eachpnum` and `shortestcover`
+
+For example:
+
+```julia
+f(x) = x - x
+
+# Ideally, we'd like f to return 0 for any finite input,
+# but Pbounds don't automatically track dependencies
+# between different uses of the same variable.
+f(pb8"[1, 2]")
+# pb8"[-1, 1]"
+
+# You can manually address the problem using a split-apply-combine
+# strategy. Notice that the bound is tighter, but not perfectly
+# tight.
+let out = pb8"empty"
+  for x in eachpnum(pb8"[1,2]")
+    out = shortestcover(out, f(x))
+  end
+  out
+end
+# pb8"(-1/4, /4)"
+
+# Same thing as a one-liner
+mapreduce(f, shortestcover, eachpnum(pb8"[1, 2]"))
+# pb8"(-1/4, /4)"
+```
+
+Again, it may make sense to apply this strategy automatically to 3-, 4-, or 8-bit Pnums, but for higher precision arithmetic, I believe it will be necessary to have more control over when intervals are and aren't split.
 
 ### Other relevant work
 
