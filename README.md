@@ -8,6 +8,14 @@ The "P" in Pnums stands either for "prototype" or "projective," I haven't totall
 
 See the [tutorial introduction](/example/Tutorial.ipynb) for a tutorial; the remainder of the README is closer to reference documentation.
 
+### Installation
+
+This package isn't registered with METADATA yet, but if you want to try it out, you can manually add it with `Pkg.clone`:
+
+```julia
+Pkg.clone("https://github.com/jwmerrill/Pnums.jl")
+```
+
 ### Unums 2.0 background
 
 Unums are an alternative to floating point numbers that allow representing and computing with entire subsets of the real line at once, instead of doing rounded computations on point values. Unlike floating point arithmetic, they explicitly track bounds on numerical error throughout a computation. In this way, they are similar to other forms of [Interval Arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic), but there are also some important differences:
