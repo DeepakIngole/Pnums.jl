@@ -206,9 +206,9 @@ Again, it may make sense to apply this strategy automatically to 3-, 4-, or 8-bi
 
 Julia implementations of Unums 1.0:
 
-* [JuliaComputing/Unums](https://github.com/JuliaComputing/Unums.jl]
-* [tbreloff/Unums.jl](https://github.com/tbreloff/Unums.jl]
-* [dpsanders/SimpleUnums.jl](https://github.com/dpsanders/SimpleUnums.jl]
+* [JuliaComputing/Unums](https://github.com/JuliaComputing/Unums.jl)
+* [tbreloff/Unums.jl](https://github.com/tbreloff/Unums.jl)
+* [dpsanders/SimpleUnums.jl](https://github.com/dpsanders/SimpleUnums.jl)
 
 Julia implementations of traditional interval arithmetic:
 
