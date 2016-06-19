@@ -2,7 +2,9 @@
 
 [![Build Status](https://travis-ci.org/jwmerrill/Pnums.jl.svg?branch=master)](https://travis-ci.org/jwmerrill/Pnums.jl)
 
-Pnums are a prototype Julia implementation of Gustafson's [Unums 2.0 [PDF]](http://www.johngustafson.net/presentations/Unums2.0.pdf). (The "p" stands either for "prototype" or "projective," I haven't totally decided yet).
+Pnums are a prototype Julia implementation of Gustafson's [Unums 2.0 [PDF]](http://www.johngustafson.net/presentations/Unums2.0.pdf).
+
+The "P" in Pnums stands either for "prototype" or "projective," I haven't totally decided yet. There are currently several [limitations and differences](#Current Limitations) from Unums 2.0 proposal, which is part of the reason for the "P" in the name.
 
 The remainder of the README serves as reference documentation. See also the [tutorial introduction](/example/Tutorial.ipynb).
 
@@ -149,7 +151,9 @@ findmaximum(x->x-exp(x), pb8"everything")
 
 The actual solution is `0`, but this algorithm fails to eliminate some regions that don't include `0`, and a region that contains infinity.
 
-### Arbitrary sets of Pnums (partially implemented)
+### Current Limitations
+
+##### Missing arbitrary sets of Pnums (partially implemented)
 
 The Unums 2.0 proposal suggests doing most computations on arbitrary sets of Unums, and not just contiguous intervals. These sets are called SORNs for "Sets Of Real Numbers".
 
@@ -158,8 +162,6 @@ This library contains an unexported type, `Pnums.Sopn` that implements a dense r
 I have chosen to focus on contiguous intervals (Pbounds), because it seems that dense representations won't be able to scale well to higher precisions and multiple dimensions (a dense bitset for 32-bit Pnums would require 2^32 bits ≈ 500MB to represent a single set, and the storage requirements for a dense 2D set over 16-bit Pnums would be the same).
 
 Contiguous intervals should be a useful building block for *sparse* represetations of sets; indeed, the results returned by `findroots` and `findmaximum` are exactly this kind of sparse representation.
-
-### Other Limitations
 
 ##### No lookup tables
 My implementation strategy means performance can't be competitive with floats or traditional intervals.
