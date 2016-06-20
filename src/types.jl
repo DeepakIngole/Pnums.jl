@@ -7,15 +7,10 @@ end
 
 abstract AbstractPnum <: Number
 
-# A NonEmptyPbound is stored as a packed binary unsigned integer where
-# the upper and lower halves encode Pnums. This is a low-level type.
-# For general purposes, the higher level Pbound type should be used,
-# since it is capable of expressing the important idea of an empty
-# Pbound
 immutable NonEmptyPbound{T<:AbstractPnum} <: Number
   x::T
   y::T
-  # Always store everything in the canonical way
+  # Always store "everything" in the canonical way
   function NonEmptyPbound(x::T, y::T)
     iseverything(x, y) ? new(nextpnum(pninf(T)), pninf(T)) : new(x, y)
   end
