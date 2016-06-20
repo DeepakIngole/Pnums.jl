@@ -259,6 +259,10 @@ function Base.sqrt{T<:AbstractPnum}(x::T)
   Pbound(y1, y2)
 end
 
+Base.abs(x::AbstractPnum) = isstrictlynegative(x) ? -x : x
+Base.abs2(x::AbstractPnum) = x^2
+Base.real(x::AbstractPnum) = x
+
 indexlength{T<:AbstractPnum}(x::T, y::T) = pnmod(T, index(y) - index(x))
 
 # Index midpoint between two Pnums. Note that this is asymmetric in
@@ -612,6 +616,10 @@ function Base.sqrt(x::Pbound)
   x1, x2 = intersect(complement(pbneg(T)), x)
   shortestcover(possqrt(x1), possqrt(x2))
 end
+
+Base.abs(x::Pbound) = Base.sqrt(x^2) #TODO this is super lame
+Base.abs2(x::Pbound) = x^2
+Base.real(x::Pbound) = x
 
 function bisect(x::Pbound)
   empty, x1, x2 = unpack(x)
