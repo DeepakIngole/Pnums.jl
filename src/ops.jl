@@ -650,7 +650,7 @@ end
 # For production implementation, probably want to allow limiting how
 # many bounds we'll visit, and probably want to go breadth first
 # instead of depth first.
-function bisectvalue!{T<:AbstractPnum}(f, x::Pbound{T}, y::T, accum::Vector{Pbound{T}})
+function findpreimage!{T<:AbstractPnum}(f, x::Pbound{T}, y::T, accum::Vector{Pbound{T}})
   fx = f(x)
   y in fx || return
   if y == fx
@@ -662,20 +662,20 @@ function bisectvalue!{T<:AbstractPnum}(f, x::Pbound{T}, y::T, accum::Vector{Pbou
     return
   end
   x1, x2 = bisect(x)
-  bisectvalue!(f, x1, y, accum)
-  bisectvalue!(f, x2, y, accum)
+  findpreimage!(f, x1, y, accum)
+  findpreimage!(f, x2, y, accum)
 end
 
-function bisectvalue{T<:AbstractPnum}(f, x::Pbound{T}, y::T)
+function findpreimage{T<:AbstractPnum}(f, x::Pbound{T}, y::T)
   accum = Pbound{T}[]
-  bisectvalue!(f, x, y, accum)
+  findpreimage!(f, x, y, accum)
   return accum
 end
 
 findroots!{T<:AbstractPnum}(f, x::Pbound{T}, accum::Vector{Pbound{T}}) =
-  bisectvalue!(f, x, zero(T), accum)
+  findpreimage!(f, x, zero(T), accum)
 
-findroots{T<:AbstractPnum}(f, x::Pbound{T}) = bisectvalue(f, x, zero(T))
+findroots{T<:AbstractPnum}(f, x::Pbound{T}) = findpreimage(f, x, zero(T))
 
 function _max{T<:AbstractPnum}(x::T, y::T)
   infindex = index(pninf(T))
@@ -714,7 +714,7 @@ end
 
 function findmaximum{T<:AbstractPnum}(f, x::Pbound{T})
   maxmin = _findmaximumvalue!(f, x, Pbound{T}[])
-  bisectvalue(f, x, maxmin)
+  findpreimage(f, x, maxmin)
 end
 
 immutable PboundIterator{T}

@@ -23,7 +23,6 @@ export
   Pbound16,
   @pn16_str,
   @pb16_str,
-  bisectvalue,
   findroots,
   findmaximum,
   nextpnum,
