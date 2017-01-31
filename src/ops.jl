@@ -81,7 +81,7 @@ end
 
 Base.convert{T<:AbstractPnum}(::Type{T}, x::Real) = _searchvalue(T, x)
 
-Base.(:-)(x::AbstractPnum) = rawpnum(typeof(x), -index(x))
+Base.:-(x::AbstractPnum) = rawpnum(typeof(x), -index(x))
 # Rotate 180 degrees and negate
 Base.inv(x::AbstractPnum) = rawpnum(typeof(x), -(index(x) + index(pninf(x))))
 
@@ -152,14 +152,14 @@ function slowtimes{T<:AbstractPnum}(x::T, y::T)
 end
 
 # TODO plan to replace these with lut operations at some point (maybe)
-Base.(:+){T<:AbstractPnum}(x::T, y::T) = slowplus(x, y)
-Base.(:-){T<:AbstractPnum}(x::T, y::T) = x + (-y)
-Base.(:*){T<:AbstractPnum}(x::T, y::T) = slowtimes(x, y)
-Base.(:/){T<:AbstractPnum}(x::T, y::T) = x*inv(y)
-Base.(:(==))(x::AbstractPnum, y::Real) = isexact(x) && exactvalue(x) == y
-Base.(:(==))(x::Real, y::AbstractPnum) = y == x
+Base.:+{T<:AbstractPnum}(x::T, y::T) = slowplus(x, y)
+Base.:-{T<:AbstractPnum}(x::T, y::T) = x + (-y)
+Base.:*{T<:AbstractPnum}(x::T, y::T) = slowtimes(x, y)
+Base.:/{T<:AbstractPnum}(x::T, y::T) = x*inv(y)
+Base.:(==)(x::AbstractPnum, y::Real) = isexact(x) && exactvalue(x) == y
+Base.:(==)(x::Real, y::AbstractPnum) = y == x
 
-function Base.(:^)(x::AbstractPnum, n::Integer)
+function Base.:^(x::AbstractPnum, n::Integer)
   T = typeof(x)
   xexact = isexact(x)
 
@@ -303,7 +303,7 @@ function Base.convert{T<:Pbound}(::Type{T}, x::Real, y::Real)
   (isnan(x) || isnan(y)) && return pbempty(T)
   Pbound(convert(eltype(T), x), convert(eltype(T), y))
 end
-Base.call{T<:Pbound}(::Type{T}, x::Real, y::Real) = convert(T, x, y)
+(::Type{T}){T<:Pbound}(x::Real, y::Real) = convert(T, x, y)
 
 function iseverything(x::Pbound)
   empty, x1, x2 = unpack(x)
@@ -323,7 +323,7 @@ function issinglepnum(x::Pbound)
   x1 == x2
 end
 
-function Base.(:-)(x::Pbound)
+function Base.:-(x::Pbound)
   empty, x1, x2 = unpack(x)
   empty && return x
   Pbound(-x2, -x1)
@@ -416,7 +416,7 @@ function finiteplus{T<:Pbound}(x::T, y::T)
   outer(x1 + y1, x2 + y2)
 end
 
-function Base.(:+){T<:Pbound}(x::T, y::T)
+function Base.:+{T<:Pbound}(x::T, y::T)
   (isempty(x) || isempty(y)) && return pbempty(T)
   (pninf(eltype(T)) in x && pninf(eltype(T)) in y) && return pbeverything(T)
 
@@ -496,7 +496,7 @@ function finitetimes{T<:Pbound}(x::T, y::T)
   return finitenonzerotimes(x, y)
 end
 
-function Base.(:*){T<:Pbound}(x::T, y::T)
+function Base.:*{T<:Pbound}(x::T, y::T)
   (isempty(x) || isempty(y)) && return pbempty(T)
   (pninf(eltype(T)) in x && zero(eltype(T)) in y) && return pbeverything(T)
   (zero(eltype(T)) in x && pninf(eltype(T)) in y) && return pbeverything(T)
@@ -526,10 +526,10 @@ function Base.(:*){T<:Pbound}(x::T, y::T)
   return finitetimes(x, y)
 end
 
-Base.(:-)(x::Pbound, y::Pbound) = x + (-y)
-Base.(:/)(x::Pbound, y::Pbound) = x*inv(y)
+Base.:-(x::Pbound, y::Pbound) = x + (-y)
+Base.:/(x::Pbound, y::Pbound) = x*inv(y)
 
-function Base.(:(==))(x::Pbound, y::Pbound)
+function Base.:(==)(x::Pbound, y::Pbound)
   xeverything, yeverything = iseverything(x), iseverything(y)
   (xeverything && yeverything) && return true
   (xeverything || yeverything) && return false
@@ -540,12 +540,12 @@ function Base.(:(==))(x::Pbound, y::Pbound)
   return x1 == y1 && x2 == y2
 end
 
-function Base.(:(==))(x::Pbound, y::Real)
+function Base.:(==)(x::Pbound, y::Real)
   empty, x1, x2 = unpack(x)
   empty && return false
   x1 == x2 == y
 end
-Base.(:(==))(x::Real, y::Pbound) = y == x
+Base.:(==)(x::Real, y::Pbound) = y == x
 
 
 function finitenonzeropow(x::Pbound, n::Integer)
@@ -575,7 +575,7 @@ function finitepow{T<:AbstractPnum}(x::Pbound{T}, n::Integer)
   )
 end
 
-function Base.(:^){T<:AbstractPnum}(x::Pbound{T}, n::Integer)
+function Base.:^{T<:AbstractPnum}(x::Pbound{T}, n::Integer)
   xempty, x1, x2 = unpack(x)
   xempty && return pbempty(x)
 
@@ -763,7 +763,7 @@ Sopn{T<:AbstractPnum}(x::Pbound{T}) = convert(Sopn{T}, x)
 
 Base.in{T<:AbstractPnum}(x::T, s::Sopn{T}) = (index(x) + 1) in s
 Base.isempty(x::Sopn) = isempty(x.s)
-Base.(:(==)){T<:Sopn}(x::T, y::T) = x.s == y.s
+Base.:(==){T<:Sopn}(x::T, y::T) = x.s == y.s
 
 type SopnIterator{T}
   s::Sopn{T}
@@ -788,11 +788,11 @@ Base.copy(x::Sopn) = Sopn(eachpnum(x))
 
 Base.eltype{T}(x::SopnIterator{T}) = T
 
-Base.(:-){T}(x::Sopn{T}) = mapreduce((-), union!, Sopn(T), eachpnum(x))
+Base.:-{T}(x::Sopn{T}) = mapreduce((-), union!, Sopn(T), eachpnum(x))
 Base.inv{T}(x::Sopn{T}) = mapreduce(inv, union!, Sopn(T), eachpnum(x))
 
 # TODO simplify 2 arg functions with metaprogramming
-function Base.(:+){T}(x::Sopn{T}, y::Sopn{T})
+function Base.:+{T}(x::Sopn{T}, y::Sopn{T})
   out = Sopn(T)
   for xp in eachpnum(x), yp in eachpnum(y)
     union!(out, xp + yp)
@@ -800,7 +800,7 @@ function Base.(:+){T}(x::Sopn{T}, y::Sopn{T})
   out
 end
 
-function Base.(:-){T}(x::Sopn{T}, y::Sopn{T})
+function Base.:-{T}(x::Sopn{T}, y::Sopn{T})
   out = Sopn(T)
   for xp in eachpnum(x), yp in eachpnum(y)
     union!(out, xp - yp)
@@ -808,7 +808,7 @@ function Base.(:-){T}(x::Sopn{T}, y::Sopn{T})
   out
 end
 
-function Base.(:*){T}(x::Sopn{T}, y::Sopn{T})
+function Base.:*{T}(x::Sopn{T}, y::Sopn{T})
   out = Sopn(T)
   for xp in eachpnum(x), yp in eachpnum(y)
     union!(out, xp*yp)
@@ -816,7 +816,7 @@ function Base.(:*){T}(x::Sopn{T}, y::Sopn{T})
   out
 end
 
-function Base.(:/){T}(x::Sopn{T}, y::Sopn{T})
+function Base.:/{T}(x::Sopn{T}, y::Sopn{T})
   out = Sopn(T)
   for xp in eachpnum(x), yp in eachpnum(y)
     union!(out, xp/yp)
@@ -824,7 +824,7 @@ function Base.(:/){T}(x::Sopn{T}, y::Sopn{T})
   out
 end
 
-function Base.(:^){T}(x::Sopn{T}, n::Integer)
+function Base.:^{T}(x::Sopn{T}, n::Integer)
   out = Sopn(T)
   for xp in eachpnum(x)
     union!(out, xp^n)
