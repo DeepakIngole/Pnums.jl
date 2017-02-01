@@ -56,12 +56,17 @@ function parseinterval{T<:AbstractPnum}(::Type{T}, match)
   return x1
 end
 
+if !isdefined(Base, :denominator) # Julia issue #19233
+  const denominator = Base.den
+  const numerator = Base.num
+end
+
 function _str(x::AbstractPnum)
   isinf(x) && return "/0"
   v = exactvalue(x)
-  den(v) == 1 && return string(num(v))
-  num(v) == 1 && return string("/", den(v))
-  string(num(v), "/", den(v))
+  denominator(v) == 1 && return string(numerator(v))
+  numerator(v) == 1 && return string("/", denominator(v))
+  string(numerator(v), "/", denominator(v))
 end
 
 function Base.show(io::IO, x::AbstractPnum)

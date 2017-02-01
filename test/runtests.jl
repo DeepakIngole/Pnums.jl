@@ -298,3 +298,4 @@ end
 ]
 
 @test findmaximum(x->-(x-4)^2, pb8"everything") == [ pb8"4" ]
+@test "pb8\"3/2\"" == string(pb8"3/2")
